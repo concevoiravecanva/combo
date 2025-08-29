@@ -12,13 +12,10 @@ import {
   Trash2,
   Upload,
   RotateCcw,
-  Expand,
   Eye,
   EyeOff,
   ArrowUp,
-  ArrowDown,
-  ZoomIn,
-  ZoomOut
+  ArrowDown
 } from 'lucide-react';
 import { addElementAtPoint } from '@canva/design'; // <— AJOUT
 
@@ -42,7 +39,7 @@ export default function App() {
   const [pushing, setPushing] = useState(false);
   const [history, setHistory] = useState<ShapeData[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [enlargeMode, setEnlargeMode] = useState(false);
+  // const [enlargeMode, setEnlargeMode] = useState(false);  // SUPPRIMÉ
   const [handlesVisible, setHandlesVisible] = useState(true);
   const [canvaReady, setCanvaReady] = useState(false);
 
@@ -168,20 +165,10 @@ export default function App() {
     });
   }
 
-  function toggleEnlargeMode() {
-    setEnlargeMode(m => !m);
-  }
-
   function toggleHandles() {
     const next = !handlesVisible;
     setHandlesVisible(next);
     canvasRef.current?.setHandlesVisibility?.(next);
-  }
-
-  function scaleSelected(factor: number) {
-    if (!selected.length) return;
-    canvasRef.current?.scaleShapes?.(selected.map(s => s.id), factor);
-    refreshShapes(false);
   }
 
   useEffect(() => {
@@ -277,64 +264,31 @@ export default function App() {
           <button
             onClick={handleClear}
             title="Vider"
-            disabled={enlargeMode}
-            style={iconBtnStyle(enlargeMode, enlargeMode)}
+            style={iconBtnStyle(false)}
           >
             <Trash2 size={18} />
           </button>
           <button
             onClick={handlePushToCanva}
-            disabled={pushing || shapes.length === 0 || enlargeMode}
+            disabled={pushing || shapes.length === 0}
             title="Ajouter à Canva"
-            style={iconBtnStyle(enlargeMode, pushing || shapes.length === 0 || enlargeMode)}
+            style={iconBtnStyle(pushing || shapes.length === 0)}
           >
             <Upload size={18} />
           </button>
           <button
             onClick={handleUndo}
-            disabled={historyIndex <= 0 || enlargeMode}
+            disabled={historyIndex <= 0}
             title="Undo"
-            style={iconBtnStyle(enlargeMode, historyIndex <= 0 || enlargeMode)}
+            style={iconBtnStyle(historyIndex <= 0)}
           >
             <RotateCcw size={18} />
           </button>
-          <button
-            onClick={toggleEnlargeMode}
-            title="Mode agrandir/rétrécir"
-            style={{
-              ...iconBtnStyle(false, false),
-              background: enlargeMode ? '#0066ff' : '#fff',
-              color: enlargeMode ? '#fff' : '#000',
-              borderColor: enlargeMode ? '#0052cc' : '#ccc'
-            }}
-          >
-            <Expand size={18} />
-          </button>
-          {enlargeMode && (
-            <>
-              <button
-                onClick={() => scaleSelected(1.15)}
-                title="Agrandir sélection"
-                style={iconBtnStyle(false, !selected.length)}
-                disabled={!selected.length}
-              >
-                <ZoomIn size={18} />
-              </button>
-              <button
-                onClick={() => scaleSelected(0.85)}
-                title="Rétrécir sélection"
-                style={iconBtnStyle(false, !selected.length)}
-                disabled={!selected.length}
-              >
-                <ZoomOut size={18} />
-              </button>
-            </>
-          )}
+          {/* Boutons de redimensionnement rapides SUPPRIMÉS */}
           <button
             onClick={toggleHandles}
             title={handlesVisible ? 'Masquer points Bézier' : 'Afficher points Bézier'}
-            disabled={enlargeMode}
-            style={iconBtnStyle(enlargeMode, enlargeMode)}
+            style={iconBtnStyle(false)}
           >
             {handlesVisible ? <Eye size={18} /> : <EyeOff size={18} />}
           </button>
@@ -416,7 +370,6 @@ export default function App() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Monter = vers l'avant (z-index supérieur)
                         canvasRef.current?.moveLayer?.(s.id, 'up');
                         refreshShapes(false);
                       }}
@@ -428,7 +381,6 @@ export default function App() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Descendre = vers l'arrière (z-index inférieur)
                         canvasRef.current?.moveLayer?.(s.id, 'down');
                         refreshShapes(false);
                       }}
@@ -436,6 +388,28 @@ export default function App() {
                       style={layerOrderBtnStyle}
                     >
                       <ArrowDown size={14} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        canvasRef.current?.scaleShapes?.([s.id], 1.1);
+                        refreshShapes(false);
+                      }}
+                      title="Agrandir 10%"
+                      style={layerOrderBtnStyle}
+                    >
+                      +
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        canvasRef.current?.scaleShapes?.([s.id], 0.9);
+                        refreshShapes(false);
+                      }}
+                      title="Rétrécir 10%"
+                      style={layerOrderBtnStyle}
+                    >
+                      –
                     </button>
                   </div>
 
@@ -484,7 +458,7 @@ const comboBtnStyle = (disabled: boolean): React.CSSProperties => ({
   boxShadow: '0 1px 2px rgba(0,0,0,0.06)'
 });
 
-const iconBtnStyle = (_enlarge: boolean, disabled?: boolean): React.CSSProperties => ({
+const iconBtnStyle = (disabled?: boolean): React.CSSProperties => ({
   height: 44,
   width: 44,
   borderRadius: 10,

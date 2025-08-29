@@ -218,40 +218,18 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
         item = new paper.Path.RegularPolygon(center, 6, s / 2);
         break;
       case "heart": {
-        const w = s;
-        const h = s;
+        const w = s * 0.55; // Ajuste la largeur
+        const h = s * 0.55; // Ajuste la hauteur
         const p = new paper.Path();
 
-        // Nouveau tracé pour un coeur plus naturel et symétrique
-        // Point du bas (pointe)
-        p.add(new paper.Segment(
-          new paper.Point(0, 0.32 * h),
-          new paper.Point(0.18 * w, 0.32 * h), // handle in
-          new paper.Point(-0.18 * w, 0.32 * h) // handle out
-        ));
-
-        // Lobe droit
-        p.add(new paper.Segment(
-          new paper.Point(0.28 * w, -0.08 * h),
-          new paper.Point(0.28 * w, 0.22 * h), // handle in
-          new paper.Point(0.46 * w, -0.18 * h) // handle out
-        ));
-
-        // Haut droit
-        p.add(new paper.Segment(
-          new paper.Point(0, -0.28 * h),
-          new paper.Point(0.46 * w, -0.28 * h), // handle in
-          new paper.Point(-0.46 * w, -0.28 * h) // handle out
-        ));
-
-        // Lobe gauche
-        p.add(new paper.Segment(
-          new paper.Point(-0.28 * w, -0.08 * h),
-          new paper.Point(-0.46 * w, -0.18 * h), // handle in
-          new paper.Point(-0.28 * w, 0.22 * h)   // handle out
-        ));
-
+        // Formule paramétrique pour un cœur lisse et symétrique
+        for (let t = 0; t < Math.PI * 2; t += (Math.PI * 2) / 100) {
+          const x = w * 16 * Math.pow(Math.sin(t), 3) / 16;
+          const y = -h * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) / 16;
+          p.add(new paper.Point(x, y));
+        }
         p.closed = true;
+        p.smooth();
         p.position = center;
         item = p;
         break;
@@ -715,12 +693,15 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
   }));
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={props.width || 300}
-      height={props.height || 240}
-      style={{ ...props.style, touchAction: "none", pointerEvents: "auto", cursor: "default" }}
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        width={props.width || 300}
+        height={props.height || 240}
+        style={{ ...props.style, touchAction: "none", pointerEvents: "auto", cursor: "default" }}
+      />
+      {/* Overlay liste + / - supprimé pour n'avoir les boutons que dans la zone Calques */}
+    </>
   );
 });
 
