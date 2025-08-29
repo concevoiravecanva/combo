@@ -1,0 +1,1442 @@
+﻿import React, {
+  useRef,
+  useEffect,
+  useImperativeHandle,
+  forwardRef,
+} from "react";
+import paper from "paper";
+
+export type ShapeData = {
+  id: string;
+  x?: number;
+  y?: number;
+  type: "circle" | "square" | "triangle" | "image" | "text" | "bezier" | "combined" | 
+        "diamond" | "star" | "hexagon" | "spiral" | "heart" | "octogon" | "decagon";
+  size?: number;
+  fillColor?: string;
+  // Ajouter ces propriÃ©tÃ©s pour les contours
+  strokeWidth?: number;
+  strokeColor?: string;
+  src?: string;
+  content?: string;
+  fontFamily?: string;
+  segments?: Array<{
+    point: { x: number; y: number };
+    handleIn?: { x: number; y: number } | null;
+    handleOut?: { x: number; y: number } | null;
+  }>;
+};
+
+export type VectorCanvasRef = {
+  addShape: (
+    type: string,
+    color?: string,
+    size?: number,
+    placementMode?: string,
+    posX?: number,
+    posY?: number,
+    syncWithCanva?: boolean
+  ) => void;
+  addImage: (
+    src: string,
+    size?: number,
+    posX?: number,
+    posY?: number,
+    syncWithCanva?: boolean
+  ) => void;
+  addText: (
+    text: string,
+    fontFamily: string,
+    fontSize: number,
+    posX?: number,
+    posY?: number,
+    syncWithCanva?: boolean
+  ) => void;
+  clearCanvas: () => void;
+  getShapesList: () => ShapeData[];
+  removeShape: (id: string) => void;
+  updateShape: (id: string, updates: Partial<Omit<ShapeData, "id">>) => void;
+  moveShapeInLayer: (id: string, direction: "up" | "down") => void;
+  exportSVG: () => string | null;
+  getSelectedShapes: () => ShapeData[];
+  selectShape: (id: string) => void;
+  deselectAll: () => void;
+  combineShapes: (
+    id1: string,
+    id2: string,
+    operation: "unite" | "subtract" | "intersect"
+  ) => void;
+  addBezierPoint: (shapeId: string) => void;
+  addBezierCurve: (shapeId: string) => void;
+  convertToBezier: (shapeId: string, type: "points" | "curves") => void;
+  undo: () => void;
+  setSelectionEnabled: (enabled: boolean) => void;
+};
+
+type Props = {
+  onShapesChange?: () => void;
+  onSelectionChange?: (selectedShapes: ShapeData[]) => void;
+  style?: React.CSSProperties;
+};
+
+// On garde trace des IDs déjà générés
+const usedIds = new Set<string>();
+
+function generateId() {
+  let id: string;
+  do {
+    // Génère un ID plus long pour réduire les risques de collision
+    id = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+  } while (usedIds.has(id)); // Continue jusqu'à obtenir un ID unique
+  
+  usedIds.add(id); // Mémorise l'ID pour éviter les doublons
+  return id;
+}
+
+const VectorCanvas = forwardRef<VectorCanvasRef, Props>(
+  ({ onShapesChange, onSelectionChange, style }, ref) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const selectedIdsRef = useRef<string[]>([]);
+    const selectionEnabledRef = useRef<boolean>(true);
+    const isDraggingRef = useRef<boolean>(false);
+    const bezierVisualsRef = useRef<paper.Group | null>(null);
+    const selectedSegmentRef = useRef<paper.Segment | null>(null);
+    const selectedHandleRef = useRef<"handleIn" | "handleOut" | null>(null);
+    const selectedPathRef = useRef<paper.Path | null>(null);
+    const dragItemRef = useRef<paper.Item | null>(null);
+    const dragOffsetRef = useRef<paper.Point | null>(null);
+    const toolRef = useRef<paper.Tool | null>(null);
+
+    // Initialisation du canvas et gestion des Ã©vÃ©nements
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      // Initialiser Paper.js avec le canvas
+      try {
+        paper.setup(canvas);
+        console.log("Paper.js initialisÃ© avec succÃ¨s");
+      } catch (error) {
+        console.log(`Erreur lors de l'initialisation de Paper.js: ${error instanceof Error ? error.message : String(error)}`);
+      }
+
+      const handleResize = () => {
+        try {
+          paper.view.viewSize = new paper.Size(canvas.offsetWidth, canvas.offsetHeight);
+          paper.view.update();
+        } catch (error) {
+          console.log(`Erreur dans handleResize: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      };
+
+      window.addEventListener("resize", handleResize);
+      handleResize();
+      
+      try {
+        loadShapes();
+      } catch (error) {
+        console.log(`Erreur dans loadShapes: ${error instanceof Error ? error.message : String(error)}`);
+      }
+
+      // Configuration de l'outil Paper.js pour les interactions
+      toolRef.current = new paper.Tool();
+      toolRef.current.onMouseDown = handleMouseDown;
+      toolRef.current.onMouseDrag = handleMouseDrag;
+      toolRef.current.onMouseUp = handleMouseUp;
+
+      return () => {
+        window.removeEventListener("resize", handleResize);
+        if (toolRef.current) {
+          toolRef.current.remove();
+        }
+      };
+    }, []);
+    
+    // Gestion du clic de souris (début du drag ou sélection)
+    const handleMouseDown = (event: paper.ToolEvent) => {
+      // Options de détection améliorées pour les segments et les poignées
+      const hitOptions = {
+        segments: true,
+        stroke: true,
+        fill: true,
+        tolerance: 8,
+        handles: true
+      };
+      
+      const hitResult = paper.project.hitTest(event.point, hitOptions);
+      
+      // Réinitialiser les références de Bézier
+      selectedSegmentRef.current = null;
+      selectedHandleRef.current = null;
+      selectedPathRef.current = null;
+      
+      if (hitResult) {
+        // Si on clique sur un groupe de contrôle Bézier
+        if (hitResult.item?.data?.isBezierControl && bezierVisualsRef.current) {
+          // Chercher si on a cliqué sur un point d'ancrage ou une poignée
+          if (hitResult.item instanceof paper.Path.Circle) {
+            const circle = hitResult.item;
+            const bezierPath = paper.project.activeLayer.children.find(
+              item => item.data?.type === "bezier" && 
+                      selectedIdsRef.current.includes(item.data.id)
+            ) as paper.Path;
+            
+            if (bezierPath) {
+              // Déterminer si c'est un point d'ancrage ou une poignée de contrôle
+              let foundSegment = false;
+              
+              // Parcourir tous les segments et points de contrôle
+              for (let i = 0; i < bezierPath.segments.length; i++) {
+                const segment = bezierPath.segments[i];
+                
+                // Point d'ancrage (rouge)
+                if (circle.position.subtract(segment.point).length < 8 && circle.fillColor?.toCSS() === '#ffffff') {
+                  selectedSegmentRef.current = segment;
+                  selectedPathRef.current = bezierPath;
+                  selectedHandleRef.current = null;
+                  isDraggingRef.current = true;
+                  foundSegment = true;
+                  break;
+                }
+                
+                // Poignée d'entrée (vert)
+                if (segment.handleIn && segment.handleIn.length > 0) {
+                  const handleInPoint = segment.point.add(segment.handleIn);
+                  if (circle.position.subtract(handleInPoint).length < 8 && circle.fillColor?.toCSS() === '#00cc00') {
+                    selectedSegmentRef.current = segment;
+                    selectedPathRef.current = bezierPath;
+                    selectedHandleRef.current = 'handleIn';
+                    isDraggingRef.current = true;
+                    foundSegment = true;
+                    break;
+                  }
+                }
+                
+                // Poignée de sortie (bleu)
+                if (segment.handleOut && segment.handleOut.length > 0) {
+                  const handleOutPoint = segment.point.add(segment.handleOut);
+                  if (circle.position.subtract(handleOutPoint).length < 8 && circle.fillColor?.toCSS() === '#0000ff') {
+                    selectedSegmentRef.current = segment;
+                    selectedPathRef.current = bezierPath;
+                    selectedHandleRef.current = 'handleOut';
+                    isDraggingRef.current = true;
+                    foundSegment = true;
+                    break;
+                  }
+                }
+              }
+              
+              if (foundSegment) {
+                // Mettre à jour le visuel pour montrer l'élément sélectionné
+                updateBezierVisuals(bezierPath);
+                return;
+              }
+            }
+          }
+        }
+        
+        if (hitResult.item && hitResult.item.data?.id) {
+          // Si c'est une courbe de Bézier et qu'on a cliqué sur un segment ou une poignée
+          if (hitResult.item.data.type === "bezier" && hitResult.item instanceof paper.Path) {
+            const path = hitResult.item as paper.Path;
+            
+            // Clic sur un segment (point d'ancrage)
+            if (hitResult.type === 'segment') {
+              selectedSegmentRef.current = hitResult.segment;
+              selectedPathRef.current = path;
+              isDraggingRef.current = true;
+              
+              // Sélectionner la forme si ce n'est pas déjà fait
+              if (!selectedIdsRef.current.includes(path.data.id)) {
+                selectShape(path.data.id);
+              }
+              return;
+            }
+                  
+                  if (!selectedIdsRef.current.includes(path.data.id)) {
+                    selectShape(path.data.id);
+                  }
+                  return;
+                }
+              }
+            }
+            
+            if (hitResult.type === 'handle-out') {
+              for (let i = 0; i < path.segments.length; i++) {
+                const segment = path.segments[i];
+                if (segment.handleOut && segment.handleOut.add(segment.point).subtract(event.point).length < 10) {
+                  selectedSegmentRef.current = segment;
+                  selectedHandleRef.current = 'handleOut';
+                  selectedPathRef.current = path;
+                  isDraggingRef.current = true;
+                  
+                  if (!selectedIdsRef.current.includes(path.data.id)) {
+                    selectShape(path.data.id);
+                  }
+                  return;
+                }
+              }
+            }
+          }
+          
+          // Pour les autres types d'éléments (non-Bézier)
+          dragItemRef.current = hitResult.item;
+          dragOffsetRef.current = hitResult.item.position.subtract(event.point);
+          isDraggingRef.current = true;
+        }
+      } else {
+        if (selectionEnabledRef.current) {
+          deselectAll();
+        }
+      }
+    };
+
+    // Gestion du drag (déplacement)
+    const handleMouseDrag = (event: paper.ToolEvent) => {
+      if (!isDraggingRef.current) return;
+      
+      // Manipulation de segment ou poignée de Bézier
+      if (selectedSegmentRef.current) {
+        if (selectedHandleRef.current) {
+          // Manipulation d'une poignée
+          if (selectedHandleRef.current === 'handleIn') {
+            selectedSegmentRef.current.handleIn = event.point.subtract(selectedSegmentRef.current.point);
+          } else {
+            selectedSegmentRef.current.handleOut = event.point.subtract(selectedSegmentRef.current.point);
+          }
+        } else {
+          // Manipulation d'un point d'ancrage
+          selectedSegmentRef.current.point = event.point;
+        }
+        
+        // Mettre à jour les visuels des contrôles de Bézier
+        if (selectedPathRef.current) {
+          updateBezierVisuals(selectedPathRef.current);
+        }
+        
+        paper.view.update();
+        return;
+      }
+      
+      // Déplacement normal pour les autres éléments
+      if (dragItemRef.current && dragOffsetRef.current && dragItemRef.current.data.type !== "bezier") {
+        dragItemRef.current.position = event.point.add(dragOffsetRef.current);
+        paper.view.update();
+      }
+    };
+
+    // Gestion du relâchement de la souris (fin du drag)
+    const handleMouseUp = () => {
+      if (isDraggingRef.current) {
+        // Sauvegarder les changements des points de Bézier
+        if (selectedPathRef.current && selectedSegmentRef.current) {
+          // Si nous avons un historique, sauvegardons l'état précédent
+          if (!selectedPathRef.current.data.history) {
+            selectedPathRef.current.data.history = [];
+          }
+          // Sauvegarder l'état avant la modification pour permettre d'annuler
+          selectedPathRef.current.data.history.push(
+            selectedPathRef.current.segments.map(s => s.clone())
+          );
+          saveShapes();
+        }
+        // Sauvegarder les changements des autres éléments
+        else if (dragItemRef.current) {
+          saveShapes();
+        }
+      }
+      
+      // Réinitialiser toutes les références de drag
+      isDraggingRef.current = false;
+      dragItemRef.current = null;
+      dragOffsetRef.current = null;
+      selectedSegmentRef.current = null;
+      selectedHandleRef.current = null;
+      selectedPathRef.current = null;
+    };
+
+    // Fonction pour mettre à jour les visuels des courbes de Bézier
+    const updateBezierVisuals = (path: paper.Path) => {
+      if (bezierVisualsRef.current) {
+        bezierVisualsRef.current.remove();
+        bezierVisualsRef.current = null;
+      }
+      
+      if (!path || !(path instanceof paper.Path) || path.data.type !== "bezier") {
+        return;
+      }
+      
+      const group = new paper.Group();
+      group.data = { isBezierControl: true };
+      
+      // Dessiner les points d'ancrage et les poignées
+      path.segments.forEach((segment, i) => {
+        // Déterminer si ce segment est actuellement sélectionné
+        const isSelected = selectedSegmentRef.current === segment;
+        
+        // Point d'ancrage (rouge, plus gros si sélectionné)
+        const point = new paper.Path.Circle({
+          center: segment.point,
+          radius: isSelected ? 8 : 6,
+          fillColor: new paper.Color('#ffffff'),
+          strokeColor: new paper.Color(isSelected ? '#ff0000' : '#aa0000'),
+          strokeWidth: isSelected ? 3 : 2
+        });
+        group.addChild(point);
+        
+        // Poignée d'entrée (handleIn)
+        if (segment.handleIn && segment.handleIn.length > 0) {
+          const handleInPoint = segment.point.add(segment.handleIn);
+          const isHandleInSelected = isSelected && selectedHandleRef.current === 'handleIn';
+          
+          // Ligne de connexion
+          const handleInLine = new paper.Path.Line({
+            from: segment.point,
+            to: handleInPoint,
+            strokeColor: new paper.Color(isHandleInSelected ? '#00ff00' : '#00aa00'),
+            strokeWidth: isHandleInSelected ? 2 : 1,
+            dashArray: [4, 2]
+          });
+          group.addChild(handleInLine);
+          
+          // Point de la poignée
+          const handleInCircle = new paper.Path.Circle({
+            center: handleInPoint,
+            radius: isHandleInSelected ? 6 : 4,
+            fillColor: new paper.Color('#00cc00')
+          });
+          group.addChild(handleInCircle);
+        }
+        
+        // Poignée de sortie (handleOut)
+        if (segment.handleOut && segment.handleOut.length > 0) {
+          const handleOutPoint = segment.point.add(segment.handleOut);
+          const isHandleOutSelected = isSelected && selectedHandleRef.current === 'handleOut';
+          
+          // Ligne de connexion
+          const handleOutLine = new paper.Path.Line({
+            from: segment.point,
+            to: handleOutPoint,
+            strokeColor: new paper.Color(isHandleOutSelected ? '#0088ff' : '#0000ff'),
+            strokeWidth: isHandleOutSelected ? 2 : 1,
+            dashArray: [4, 2]
+          });
+          group.addChild(handleOutLine);
+          
+          // Point de la poignée
+          const handleOutCircle = new paper.Path.Circle({
+            center: handleOutPoint,
+            radius: isHandleOutSelected ? 6 : 4,
+            fillColor: new paper.Color('#0000ff')
+          });
+          group.addChild(handleOutCircle);
+        }
+      });
+      
+      paper.project.activeLayer.addChild(group);
+      bezierVisualsRef.current = group;
+    };
+    
+    // Sauvegarde des formes dans localStorage
+    const saveShapes = () => {
+      try {
+        if (!paper.project || !paper.project.activeLayer) {
+          console.log("Erreur dans saveShapes: paper.project ou paper.project.activeLayer est null!");
+          return;
+        }
+        
+        console.log(`saveShapes: Sauvegarde de ${paper.project.activeLayer.children.length} formes`);
+        
+        const shapes: any[] = paper.project.activeLayer.children.map((item) => {
+        if (item instanceof paper.PointText) {
+          return {
+            id: item.data.id,
+            x: item.position.x,
+            y: item.position.y,
+            type: "text",
+            size: item.fontSize,
+            fillColor: item.fillColor?.toCSS(true),
+            strokeColor: item.strokeColor?.toCSS(true),
+            strokeWidth: item.strokeWidth,
+            content: item.content,
+            fontFamily: item.fontFamily,
+          };
+        }
+        if (item instanceof paper.Raster) {
+          return {
+            id: item.data.id,
+            x: item.position.x,
+            y: item.position.y,
+            type: "image",
+            size: item.bounds.width,
+            src: item.data.src,
+          };
+        }
+        if (item.data.type === "bezier" && item instanceof paper.Path) {
+          return {
+            id: item.data.id,
+            type: "bezier",
+            strokeColor: item.strokeColor?.toCSS(true),
+            strokeWidth: item.strokeWidth,
+            segments: item.segments.map((s) => ({
+              point: { x: s.point.x, y: s.point.y },
+              handleIn: s.handleIn ? { x: s.handleIn.x, y: s.handleIn.y } : null,
+              handleOut: s.handleOut ? { x: s.handleOut.x, y: s.handleOut.y } : null,
+            })),
+          };
+        }
+        return {
+          id: item.data.id,
+          x: item.position.x,
+          y: item.position.y,
+          type: item.data.type,
+          size: item.bounds.width / 2,
+          fillColor: item.fillColor?.toCSS(true),
+          strokeColor: item.strokeColor?.toCSS(true),
+          strokeWidth: item.strokeWidth,
+        };
+      });
+      
+      localStorage.setItem("shapes", JSON.stringify(shapes));
+      console.log(`saveShapes: Formes sauvegardÃ©es dans localStorage avec succÃ¨s!`);
+      
+      if (onShapesChange) onShapesChange();
+      
+      // Force update du canvas
+      paper.view.update();
+      
+      } catch (error) {
+        console.log(`Erreur dans saveShapes: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    };
+
+    // Chargement des formes depuis localStorage
+    const loadShapes = () => {
+      const saved = localStorage.getItem("shapes");
+      if (saved) {
+        const shapes: ShapeData[] = JSON.parse(saved);
+        
+        // Enregistrer tous les IDs existants pour éviter les duplications
+        shapes.forEach((shape) => {
+          if (shape.id) {
+            usedIds.add(shape.id);
+          }
+        });
+        
+        console.log(`Nombre d'IDs enregistrés après chargement: ${usedIds.size}`);
+        
+        shapes.forEach((shape) => {
+          if (shape.type === "image" && shape.src) {
+            createImage(shape.src, shape.size, shape.x, shape.y, shape.id);
+          } else if (shape.type === "text" && shape.content) {
+            createText(
+              shape.content,
+              shape.fontFamily || "Arial",
+              shape.size,
+              shape.x,
+              shape.y,
+              shape.fillColor,
+              shape.id
+            );
+          } else if (shape.type === "bezier" && shape.segments) {
+            createBezier(shape.segments, shape.id);
+          } else {
+            createShape(shape.type, shape.fillColor, shape.size, shape.x, shape.y, shape.id);
+          }
+        });
+      }
+    };
+
+    // Mise Ã  jour visuelle de la sÃ©lection
+    const updateSelectionVisuals = () => {
+      // Supprimer les visualisations de Bézier précédentes
+      if (bezierVisualsRef.current) {
+        bezierVisualsRef.current.remove();
+        bezierVisualsRef.current = null;
+      }
+      
+      paper.project.activeLayer.children.forEach((item) => {
+        if (!item.data?.id) return;
+        if (selectedIdsRef.current.includes(item.data.id)) {
+          if (!item.data._originalStrokeColor) {
+            item.data._originalStrokeColor = item.strokeColor;
+            item.data._originalStrokeWidth = item.strokeWidth;
+          }
+          item.strokeColor = new paper.Color("blue");
+          item.strokeWidth = 3;
+          
+          // Si c'est une courbe de Bézier, ajouter les visuels
+          if (item.data.type === "bezier" && item instanceof paper.Path) {
+            updateBezierVisuals(item);
+          }
+        } else {
+          if (item.data._originalStrokeColor !== undefined) {
+            item.strokeColor = item.data._originalStrokeColor;
+            item.strokeWidth = item.data._originalStrokeWidth;
+          }
+        }
+      });
+      
+      paper.view.update();
+      
+      // Notifier le composant parent des changements de sélection
+      if (onSelectionChange) {
+        const selectedShapes = getSelectedShapes();
+        onSelectionChange(selectedShapes);
+      }
+    };
+
+    // Gestion du clic sur une forme (sÃ©lection)
+    const onShapeClick = (shape: paper.Item) => {
+      if (!selectionEnabledRef.current) return;
+      const id = shape.data.id;
+      const selected = selectedIdsRef.current;
+      const idx = selected.indexOf(id);
+      if (idx === -1) {
+        if (selected.length < 2) {
+          selected.push(id);
+        } else {
+          selected.shift();
+          selected.push(id);
+        }
+      } else {
+        selected.splice(idx, 1);
+      }
+      updateSelectionVisuals();
+    };
+
+    // Rendre une forme glissable et sÃ©lectionnable
+    const makeDraggableAndSelectable = (shape: paper.Item) => {
+      if (shape.data.type === "bezier") {
+        shape.onClick = () => onShapeClick(shape);
+        return;
+      }
+      shape.onClick = () => onShapeClick(shape);
+    };
+
+    // CrÃ©ation d'une forme
+    const createShape = (
+      type: string,
+      color?: string,
+      size: number = 50,
+      posX: number = 150,
+      posY: number = 150,
+      id?: string
+    ): paper.Path | paper.PathItem | undefined => {
+      let shape: paper.Path | paper.PathItem | undefined;
+      if (type === "circle") {
+        shape = new paper.Path.Circle(new paper.Point(posX, posY), size);
+      } else if (type === "square") {
+        shape = new paper.Path.Rectangle({
+          point: [posX - size, posY - size],
+          size: [size * 2, size * 2],
+        });
+      } else if (type === "triangle") {
+        shape = new paper.Path.RegularPolygon(new paper.Point(posX, posY), 3, size);
+      } else if (type === "diamond") {
+        shape = new paper.Path();
+        shape.add(new paper.Point(posX, posY - size));
+        shape.add(new paper.Point(posX + size, posY));
+        shape.add(new paper.Point(posX, posY + size));
+        shape.add(new paper.Point(posX - size, posY));
+        shape.closed = true;
+      } else if (type === "star") {
+        shape = new paper.Path.Star(new paper.Point(posX, posY), 5, size * 0.5, size);
+      } else if (type === "hexagon") {
+        shape = new paper.Path.RegularPolygon(new paper.Point(posX, posY), 6, size);
+      } else if (type === "spiral") {
+        shape = new paper.Path();
+        const turns = 3;
+        const points = 60;
+        for (let i = 0; i < points; i++) {
+          const angle = (i / points) * turns * Math.PI * 2;
+          const radius = (i / points) * size;
+          shape.add(new paper.Point(
+            posX + Math.cos(angle) * radius,
+            posY + Math.sin(angle) * radius
+          ));
+        }
+      } else if (type === "heart") {
+        shape = new paper.Path();
+        for (let t = 0; t < Math.PI * 2; t += 0.1) {
+          const x = size * 16 * Math.pow(Math.sin(t), 3);
+          const y = -size * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+          shape.add(new paper.Point(posX + x / 20, posY + y / 20));
+        }
+        shape.closed = true;
+      } else if (type === "octogon") {
+        shape = new paper.Path.RegularPolygon(new paper.Point(posX, posY), 8, size);
+      } else if (type === "decagon") {
+        shape = new paper.Path.RegularPolygon(new paper.Point(posX, posY), 10, size);
+      }
+      if (shape) {
+        shape.fillColor = color
+          ? new paper.Color(color)
+          : new paper.Color(Math.random(), Math.random(), Math.random());
+        
+        // Initialiser les propriÃ©tÃ©s de contour par dÃ©faut
+        shape.strokeColor = new paper.Color("#000000");
+        shape.strokeWidth = 0; // Par dÃ©faut, pas de contour
+        
+        shape.data = {
+          type,
+          id: id || generateId(),
+          _originalStrokeColor: shape.strokeColor,
+          _originalStrokeWidth: shape.strokeWidth
+        };
+        paper.project.activeLayer.addChild(shape);
+        makeDraggableAndSelectable(shape);
+      }
+      return shape;
+    };
+
+    // CrÃ©ation d'une courbe BÃ©zier
+    const createBezier = (
+      segments: ShapeData["segments"],
+      id?: string
+    ): paper.Path => {
+      const path = new paper.Path();
+      path.strokeColor = new paper.Color("#000");
+      path.strokeWidth = 2;
+      segments?.forEach((seg) => {
+        const segment = new paper.Segment(
+          new paper.Point(seg.point.x, seg.point.y),
+          seg.handleIn ? new paper.Point(seg.handleIn.x, seg.handleIn.y) : null,
+          seg.handleOut ? new paper.Point(seg.handleOut.x, seg.handleOut.y) : null
+        );
+        path.add(segment);
+      });
+      path.data = {
+        id: id || generateId(),
+        type: "bezier",
+        history: [],
+      };
+      paper.project.activeLayer.addChild(path);
+      makeDraggableAndSelectable(path);
+      return path;
+    };
+
+    // CrÃ©ation d'un texte
+    const createText = (
+      text: string,
+      fontFamily: string = "Arial",
+      fontSize: number = 32,
+      posX: number = 150,
+      posY: number = 150,
+      fillColor: string = "#000000",
+      id?: string
+    ): paper.PointText => {
+      try {
+        // Utiliser une police systÃ¨me par dÃ©faut si la police spÃ©cifiÃ©e n'est pas disponible
+        // S'assurer que paper.js est bien initialisÃ©
+        if (!paper.project || !paper.project.activeLayer) {
+          console.error("Paper.js n'est pas correctement initialisÃ©");
+          throw new Error("Paper.js n'est pas correctement initialisÃ©");
+        }
+        
+        // Calculer une position alÃ©atoire si non spÃ©cifiÃ©e
+        const finalPosX = posX === 150 ? Math.random() * (paper.view.viewSize.width - 200) + 100 : posX;
+        const finalPosY = posY === 150 ? Math.random() * (paper.view.viewSize.height - 200) + 100 : posY;
+        
+        // CrÃ©er le texte avec une police systÃ¨me sÃ»re
+        const pointText = new paper.PointText(new paper.Point(finalPosX, finalPosY));
+        pointText.content = text;
+        pointText.fontSize = fontSize;
+        pointText.fillColor = new paper.Color(fillColor);
+        
+        // Utiliser une police systÃ¨me garantie d'Ãªtre disponible
+        const safeFont = fontFamily || "Arial";
+        pointText.fontFamily = safeFont;
+        
+        const newId = id || generateId();
+        pointText.data = {
+          type: "text",
+          id: newId,
+        };
+        
+        pointText.justification = "center";
+        paper.project.activeLayer.addChild(pointText);
+        makeDraggableAndSelectable(pointText);
+        
+        // Forcer la mise Ã  jour du canvas
+        paper.view.update();
+        
+        return pointText;
+      } catch (error) {
+        console.error(`Erreur dans createText: ${error instanceof Error ? error.message : String(error)}`);
+        throw error; // Re-throw pour que l'erreur soit visible dans la console
+      }
+    };
+
+    // CrÃ©ation d'une image
+    const createImage = (
+      src: string,
+      size: number = 100,
+      posX: number = 150,
+      posY: number = 150,
+      id?: string
+    ): paper.Raster => {
+      const raster = new paper.Raster({
+        source: src,
+        position: new paper.Point(posX, posY),
+      });
+      raster.onLoad = () => {
+        const aspectRatio = raster.height / raster.width;
+        raster.size = new paper.Size(size, size * aspectRatio);
+        saveShapes();
+      };
+      raster.data = {
+        type: "image",
+        id: id || generateId(),
+        src,
+      };
+      paper.project.activeLayer.addChild(raster);
+      makeDraggableAndSelectable(raster);
+      return raster;
+    };
+
+    // Ajout d'une forme
+    const addShape = (
+      type: string,
+      color?: string,
+      size: number = 50,
+      placementMode: string = "random", // Par dÃ©faut, on utilise le placement alÃ©atoire
+      posX: number = 150,
+      posY: number = 150,
+      syncWithCanva: boolean = false
+    ) => {
+      if (placementMode === "random" && canvasRef.current) {
+        const canvasWidth = canvasRef.current.offsetWidth || 800;
+        const canvasHeight = canvasRef.current.offsetHeight || 400;
+        posX = size + Math.random() * (canvasWidth - size * 2);
+        posY = size + Math.random() * (canvasHeight - size * 2);
+      }
+      createShape(type, color, size, posX, posY);
+      saveShapes();
+    };
+
+    // Ajout d'un texte
+    const addText = (
+      text: string,
+      fontFamily: string,
+      fontSize: number,
+      posX: number = 150,
+      posY: number = 150,
+      syncWithCanva: boolean = false
+    ) => {
+      try {
+        // Placement alÃ©atoire par dÃ©faut
+        if (canvasRef.current) {
+          const canvasWidth = canvasRef.current.offsetWidth || 800;
+          const canvasHeight = canvasRef.current.offsetHeight || 400;
+          posX = fontSize * 2 + Math.random() * (canvasWidth - fontSize * 4);
+          posY = fontSize + Math.random() * (canvasHeight - fontSize * 2);
+        }
+        
+        // Utiliser des polices systÃ¨me uniquement
+        const safeFont = fontFamily || "Arial";
+        const textElement = createText(text, safeFont, fontSize, posX, posY);
+        
+        saveShapes();
+        console.log("Formes sauvegardÃ©es!");
+        
+        // Forcer la mise Ã  jour du canvas
+        paper.view.update();
+        
+      } catch (error) {
+        console.log(`Erreur lors de l'ajout du texte: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    };
+
+    // Ajout d'une image
+    const addImage = (
+      src: string,
+      size: number = 100,
+      posX: number = 150,
+      posY: number = 150,
+      syncWithCanva: boolean = false
+    ) => {
+      // Placement alÃ©atoire par dÃ©faut
+      if (canvasRef.current) {
+        const canvasWidth = canvasRef.current.offsetWidth || 800;
+        const canvasHeight = canvasRef.current.offsetHeight || 400;
+        posX = size + Math.random() * (canvasWidth - size * 2);
+        posY = size + Math.random() * (canvasHeight - size * 2);
+      }
+      createImage(src, size, posX, posY);
+      saveShapes();
+    };
+
+    // Effacer le canvas
+    const clearCanvas = () => {
+      paper.project.activeLayer.removeChildren();
+      selectedIdsRef.current = [];
+      localStorage.removeItem("shapes");
+      if (onShapesChange) onShapesChange();
+      updateSelectionVisuals();
+      // RÃ©active la sÃ©lection aprÃ¨s le reset
+      selectionEnabledRef.current = true;
+    };
+
+    // RÃ©cupÃ©rer la liste des formes
+    const getShapesList = (): ShapeData[] => {
+      return paper.project.activeLayer.children.map((item) => {
+        if (item instanceof paper.PointText) {
+          return {
+            id: item.data.id,
+            x: item.position.x,
+            y: item.position.y,
+            type: "text",
+            size: item.fontSize,
+            fillColor: item.fillColor?.toCSS(true),
+            content: item.content,
+            fontFamily: item.fontFamily,
+          };
+        }
+        if (item instanceof paper.Raster) {
+          return {
+            id: item.data.id,
+            x: item.position.x,
+            y: item.position.y,
+            type: "image",
+            size: item.bounds.width,
+            src: item.data.src,
+          };
+        }
+        if (item.data.type === "bezier" && item instanceof paper.Path) {
+          return {
+            id: item.data.id,
+            type: "bezier",
+            segments: item.segments.map((s) => ({
+              point: { x: s.point.x, y: s.point.y },
+              handleIn: s.handleIn ? { x: s.handleIn.x, y: s.handleIn.y } : null,
+              handleOut: s.handleOut ? { x: s.handleOut.x, y: s.handleOut.y } : null,
+            })),
+          };
+        }
+        return {
+          id: item.data.id,
+          x: item.position.x,
+          y: item.position.y,
+          type: item.data.type,
+          size: item.bounds.width / 2,
+          fillColor: item.fillColor?.toCSS(true),
+        };
+      });
+    };
+
+    // RÃ©cupÃ©rer les formes sÃ©lectionnÃ©es
+    const getSelectedShapes = (): ShapeData[] => {
+      // RÃ©cupÃ©rer les IDs sÃ©lectionnÃ©s
+      const selectedIds = selectedIdsRef.current;
+      if (selectedIds.length === 0) return [];
+      
+      // RÃ©cupÃ©rer toutes les formes
+      const allShapes = getShapesList();
+      
+      // Filtrer les formes sÃ©lectionnÃ©es
+      const selectedItems = allShapes.filter(shape => selectedIds.includes(shape.id));
+      
+      console.log("SÃ©lection dans canvas:", selectedIds.length, "formes");
+      return selectedItems;
+    };
+
+    // SÃ©lectionner une forme
+    const selectShape = (id: string) => {
+      const selected = selectedIdsRef.current;
+      const idx = selected.indexOf(id);
+      if (idx === -1) {
+        if (selected.length < 2) {
+          selected.push(id);
+        } else {
+          selected.shift();
+          selected.push(id);
+        }
+      } else {
+        selected.splice(idx, 1);
+      }
+      updateSelectionVisuals();
+    };
+
+    // DÃ©sÃ©lectionner tout
+    const deselectAll = () => {
+      selectedIdsRef.current = [];
+      updateSelectionVisuals();
+    };
+
+    // Supprimer une forme
+    const removeShape = (id: string) => {
+      const shape = paper.project.activeLayer.children.find(
+        (item) => item.data?.id === id
+      );
+      if (shape) {
+        shape.remove();
+        const sel = selectedIdsRef.current;
+        const idx = sel.indexOf(id);
+        if (idx !== -1) {
+          sel.splice(idx, 1);
+          updateSelectionVisuals();
+        }
+        saveShapes();
+      }
+    };
+
+    // Mettre Ã  jour une forme
+    const updateShape = (
+      id: string,
+      updates: Partial<Omit<ShapeData, "id">>
+    ) => {
+      const shape = paper.project.activeLayer.children.find(
+        (item) => item.data?.id === id
+      );
+      if (!shape) return;
+      
+      // Logique de mise Ã  jour selon le type de forme et les propriÃ©tÃ©s
+      if ('fillColor' in updates && updates.fillColor) {
+        shape.fillColor = new paper.Color(updates.fillColor);
+      }
+      
+      // Mise Ã  jour des propriÃ©tÃ©s de contour
+      if ('strokeWidth' in updates) {
+        shape.strokeWidth = updates.strokeWidth || 0;
+        // Sauvegarder la valeur originale pour la restaurer lors de la dÃ©sÃ©lection
+        shape.data._originalStrokeWidth = updates.strokeWidth || 0;
+      }
+      
+      if ('strokeColor' in updates && updates.strokeColor) {
+        shape.strokeColor = new paper.Color(updates.strokeColor);
+        // Sauvegarder la valeur originale pour la restaurer lors de la dÃ©sÃ©lection
+        shape.data._originalStrokeColor = new paper.Color(updates.strokeColor);
+      }
+      
+      // Position et taille
+      if ('x' in updates && updates.x !== undefined && 'y' in updates && updates.y !== undefined) {
+        shape.position = new paper.Point(updates.x, updates.y);
+      }
+      
+      if ('size' in updates && updates.size && shape.bounds) {
+        const currentSize = shape.bounds.width / 2;
+        const scaleFactor = updates.size / currentSize;
+        shape.scale(scaleFactor);
+      }
+      
+      paper.view.update();
+      saveShapes();
+    };
+
+    // DÃ©placer une forme dans la couche
+    const moveShapeInLayer = (id: string, direction: "up" | "down") => {
+      const layer = paper.project.activeLayer;
+      const children = layer.children;
+      const index = children.findIndex((item) => item.data?.id === id);
+      if (index === -1) return;
+      let newIndex = index;
+      if (direction === "up" && index < children.length - 1) {
+        newIndex = index + 1;
+      } else if (direction === "down" && index > 0) {
+        newIndex = index - 1;
+      }
+      if (newIndex === index) return;
+      const shape = children[index];
+      shape.remove();
+      layer.insertChild(newIndex, shape);
+      saveShapes();
+      paper.view.update();
+    };
+
+    // Combiner deux formes
+    const combineShapes = (
+      id1: string,
+      id2: string,
+      operation: "unite" | "subtract" | "intersect"
+    ) => {
+      console.log(`Tentative de combinaison - ID1: ${id1}, ID2: ${id2}`);
+      console.log(`IDs utilisés: ${Array.from(usedIds).length}`);
+      
+      // Recherche des éléments dans le calque actif
+      let item1 = paper.project.activeLayer.children.find(
+        (item) => item.data?.id === id1
+      );
+      let item2 = paper.project.activeLayer.children.find(
+        (item) => item.data?.id === id2
+      );
+      
+      if (!item1 || !item2) {
+        console.log(`Éléments non trouvés - item1: ${!!item1}, item2: ${!!item2}`);
+        return;
+      }
+      
+      // Créer des copies des formes pour les convertir si nécessaire
+      let shape1: paper.PathItem;
+      let shape2: paper.PathItem;
+      let item1IsText = item1 instanceof paper.PointText;
+      let item2IsText = item2 instanceof paper.PointText;
+      
+      // Conversion du texte en chemin si nécessaire
+      try {
+        if (item1IsText) {
+          // Créer un chemin rectangulaire à partir des limites du texte
+          const textPath = new paper.Path.Rectangle((item1 as paper.PointText).bounds);
+          textPath.fillColor = (item1 as paper.PointText).fillColor;
+          textPath.position = item1.position.clone();
+          shape1 = textPath;
+        } else if (item1 instanceof paper.PathItem) {
+          shape1 = item1;
+        } else {
+          console.log("Le premier élément sélectionné ne peut pas être combiné");
+          return;
+        }
+        
+        if (item2IsText) {
+          // Créer un chemin rectangulaire à partir des limites du texte
+          const textPath = new paper.Path.Rectangle((item2 as paper.PointText).bounds);
+          textPath.fillColor = (item2 as paper.PointText).fillColor;
+          textPath.position = item2.position.clone();
+          shape2 = textPath;
+        } else if (item2 instanceof paper.PathItem) {
+          shape2 = item2;
+        } else {
+          console.log("Le deuxième élément sélectionné ne peut pas être combiné");
+          if (item1IsText) {
+            shape1.remove(); // Nettoyer le chemin temporaire
+          }
+          return;
+        }
+        
+        // Application de l'opération booléenne
+        let newShape: paper.PathItem | null = null;
+        if (operation === "unite") newShape = shape1.unite(shape2);
+        else if (operation === "subtract") newShape = shape1.subtract(shape2);
+        else if (operation === "intersect") newShape = shape1.intersect(shape2);
+        
+        // Si les chemins temporaires ont été créés, les supprimer
+        if (item1IsText && shape1 !== item1) {
+          shape1.remove();
+        }
+        if (item2IsText && shape2 !== item2) {
+          shape2.remove();
+        }
+        
+        if (!newShape) {
+          console.log("La combinaison a échoué.");
+          return;
+        }
+      } catch (err) {
+        console.log("Erreur lors de la combinaison des formes: " + err);
+        return;
+      }
+      // Appliquer la couleur de la première forme
+      if (item1 instanceof paper.PointText && (item1 as paper.PointText).fillColor) {
+        newShape.fillColor = (item1 as paper.PointText).fillColor.clone();
+      } else if (item1 instanceof paper.PathItem && item1.fillColor) {
+        newShape.fillColor = item1.fillColor.clone();
+      }
+      
+      // Configuration de la nouvelle forme
+      newShape.data = { id: generateId(), type: "combined" };
+      paper.project.activeLayer.addChild(newShape);
+      makeDraggableAndSelectable(newShape);
+      
+      // Suppression des formes originales
+      item1.remove();
+      item2.remove();
+      
+      // Mise à jour de la sélection
+      selectedIdsRef.current = [newShape.data.id];
+      updateSelectionVisuals();
+      saveShapes();
+    };
+
+    // Ajouter un point Ã  une courbe BÃ©zier
+    const addBezierPoint = (shapeId: string) => {
+      const shape = paper.project.activeLayer.children.find(
+        (item) => item.data?.id === shapeId && item.data.type === "bezier"
+      ) as paper.Path;
+      if (!shape) return;
+      if (!shape.data.history) shape.data.history = [];
+      shape.data.history.push(shape.segments.map((s) => s.clone()));
+      const lastPoint = shape.segments[shape.segments.length - 1].point;
+      const newSegment = new paper.Segment(
+        new paper.Point(lastPoint.x + 20, lastPoint.y),
+        new paper.Point(-30, 0),
+        new paper.Point(30, 0)
+      );
+      shape.add(newSegment);
+      paper.view.update();
+      saveShapes();
+    };
+
+    // Ajouter une courbe Ã  une courbe BÃ©zier
+    const addBezierCurve = (shapeId: string) => {
+      const shape = paper.project.activeLayer.children.find(
+        (item) => item.data?.id === shapeId && item.data.type === "bezier"
+      ) as paper.Path;
+      if (!shape || shape.segments.length < 2) return;
+      if (!shape.data.history) shape.data.history = [];
+      shape.data.history.push(shape.segments.map((s) => s.clone()));
+      const lastIndex = shape.segments.length - 1;
+      const prevSegment = shape.segments[lastIndex - 1];
+      const lastSegment = shape.segments[lastIndex];
+      prevSegment.handleOut = new paper.Point(30, 0);
+      lastSegment.handleIn = new paper.Point(-30, 0);
+      paper.view.update();
+      saveShapes();
+    };
+
+    // Convertir une forme en courbe de Bézier
+    const convertToBezier = (shapeId: string, type: "points" | "curves") => {
+      // Trouver la forme à convertir
+      const shape = paper.project.activeLayer.children.find(
+        (item) => item.data?.id === shapeId
+      );
+      
+      if (!shape) return;
+      
+      // Sauvegarder l'état actuel pour l'historique
+      const historyItem = {
+        id: shape.data.id,
+        type: shape.data.type,
+        originalItem: shape.clone()
+      };
+      
+      // Variables pour stocker le chemin final
+      let bezierPath: paper.Path;
+      let temporaryPath: paper.PathItem | null = null;
+      
+      // Traitement spécial pour le texte
+      if (shape instanceof paper.PointText) {
+        // Convertir le texte en chemin (utiliser une forme rectangulaire comme fallback)
+        try {
+          // Nous ne pouvons pas utiliser toPath() car ce n'est pas disponible dans cette version
+          // Au lieu de cela, nous créons un chemin rectangulaire qui correspond aux dimensions du texte
+          temporaryPath = new paper.Path.Rectangle(shape.bounds);
+          temporaryPath.fillColor = shape.fillColor;
+          temporaryPath.strokeColor = shape.strokeColor;
+          temporaryPath.strokeWidth = shape.strokeWidth;
+          
+          // Créer un nouveau chemin Bézier qui utilisera le chemin du texte
+          bezierPath = new paper.Path();
+          bezierPath.data = {
+            id: shape.data.id,
+            type: "bezier",
+            originalType: "text", // Garder une référence au type d'origine
+            content: shape.content,
+            history: []
+          };
+          
+          // Copier les segments du chemin temporaire
+          if (type === "points") {
+            // Sans courbes - juste les points
+            temporaryPath.segments.forEach(segment => {
+              bezierPath.add(new paper.Segment(segment.point.clone()));
+            });
+          } else {
+            // Avec courbes - garder les poignées
+            temporaryPath.segments.forEach(segment => {
+              bezierPath.add(segment.clone());
+            });
+            
+            // S'assurer que les poignées sont correctement initialisées
+            for (let i = 1; i < bezierPath.segments.length; i++) {
+              const prevSegment = bezierPath.segments[i-1];
+              const currSegment = bezierPath.segments[i];
+              
+              if (!prevSegment.handleOut || prevSegment.handleOut.length === 0) {
+                prevSegment.handleOut = new paper.Point(20, 0);
+              }
+              
+              if (!currSegment.handleIn || currSegment.handleIn.length === 0) {
+                currSegment.handleIn = new paper.Point(-20, 0);
+              }
+            }
+          }
+          
+          // Copier les attributs visuels
+          bezierPath.fillColor = temporaryPath.fillColor;
+          bezierPath.strokeColor = temporaryPath.strokeColor;
+          bezierPath.strokeWidth = temporaryPath.strokeWidth;
+          bezierPath.closed = temporaryPath.closed;
+          
+          // Nettoyer le chemin temporaire
+          temporaryPath.remove();
+        } catch (err) {
+          console.log("Erreur lors de la conversion du texte en Bézier:", err);
+          return;
+        }
+      } 
+      // Traitement pour les chemins (Path)
+      else if (shape instanceof paper.Path) {
+        // Si c'est déjà un chemin, on peut travailler directement avec ses segments
+        bezierPath = new paper.Path();
+        bezierPath.data = {
+          id: shape.data.id,
+          type: "bezier",
+          originalType: shape.data.type,
+          history: []
+        };
+        
+        if (type === "points") {
+          // Utiliser simplement les points existants, sans courbes
+          shape.segments.forEach(segment => {
+            bezierPath.add(new paper.Segment(segment.point.clone()));
+          });
+        } else {
+          // Utiliser les segments avec leurs poignées pour créer des courbes
+          shape.segments.forEach(segment => {
+            bezierPath.add(segment.clone());
+          });
+          
+          // S'assurer que les poignées sont correctement initialisées
+          for (let i = 1; i < bezierPath.segments.length; i++) {
+            const prevSegment = bezierPath.segments[i-1];
+            const currSegment = bezierPath.segments[i];
+            
+            if (!prevSegment.handleOut || prevSegment.handleOut.length === 0) {
+              prevSegment.handleOut = new paper.Point(20, 0);
+            }
+            
+            if (!currSegment.handleIn || currSegment.handleIn.length === 0) {
+              currSegment.handleIn = new paper.Point(-20, 0);
+            }
+          }
+        }
+        
+        // Copier les attributs visuels
+        bezierPath.fillColor = shape.fillColor;
+        bezierPath.strokeColor = shape.strokeColor;
+        bezierPath.strokeWidth = shape.strokeWidth;
+        bezierPath.closed = shape.closed;
+      } 
+      // Traitement pour les autres types (Rectangle, Circle, etc.)
+      else {
+        const originalBounds = shape.bounds;
+        
+        // Créer un nouveau chemin Bézier
+        bezierPath = new paper.Path();
+        bezierPath.data = {
+          id: shape.data.id,
+          type: "bezier",
+          originalType: shape.data.type,
+          history: []
+        };
+        
+        // Pour les formes qui ne sont pas des chemins
+        // Créer un rectangle/forme de taille équivalente
+        const topLeft = originalBounds.topLeft;
+        const topRight = originalBounds.topRight;
+        const bottomRight = originalBounds.bottomRight;
+        const bottomLeft = originalBounds.bottomLeft;
+        
+        // Ajouter les quatre coins
+        bezierPath.add(new paper.Point(topLeft));
+        bezierPath.add(new paper.Point(topRight));
+        bezierPath.add(new paper.Point(bottomRight));
+        bezierPath.add(new paper.Point(bottomLeft));
+        
+        // Fermer le chemin
+        bezierPath.closed = true;
+        
+        // Ajouter des poignées de courbe si demandé
+        if (type === "curves") {
+          // Ajouter des poignées pour créer des courbes
+          for (let i = 0; i < bezierPath.segments.length; i++) {
+            const segment = bezierPath.segments[i];
+            const nextIndex = (i + 1) % bezierPath.segments.length;
+            const vector = bezierPath.segments[nextIndex].point.subtract(segment.point);
+            const handleLength = vector.length * 0.4;
+            
+            // Créer des poignées dans la direction du segment suivant
+            const handleOut = vector.normalize().multiply(handleLength);
+            segment.handleOut = handleOut;
+            
+            // Poignée d'entrée pour le segment suivant
+            bezierPath.segments[nextIndex].handleIn = handleOut.multiply(-1);
+          }
+        }
+        
+        // Récupérer les attributs visuels de la forme originale
+        const originalFillColor = shape instanceof paper.Item && shape.fillColor 
+          ? shape.fillColor 
+          : new paper.Color("#000000");
+        const originalStrokeColor = shape instanceof paper.Item && shape.strokeColor 
+          ? shape.strokeColor 
+          : null;
+        const originalStrokeWidth = shape instanceof paper.Item && shape.strokeWidth 
+          ? shape.strokeWidth 
+          : 1;
+          
+        bezierPath.fillColor = originalFillColor;
+        bezierPath.strokeColor = originalStrokeColor;
+        bezierPath.strokeWidth = originalStrokeWidth;
+      }
+      
+      // Supprimer la forme originale
+      shape.remove();
+      
+      // Ajouter la nouvelle forme de Bézier à la couche active
+      paper.project.activeLayer.addChild(bezierPath);
+      
+      // Rendre le chemin Bézier interactif
+      makeDraggableAndSelectable(bezierPath);
+      
+      // Mettre à jour la sélection
+      selectedIdsRef.current = [bezierPath.data.id];
+      updateSelectionVisuals();
+      
+      // Sauvegarder l'état
+      saveShapes();
+    };
+
+    // Annuler la dernière action sur une courbe de Bézier
+    const undo = () => {
+      if (selectedIdsRef.current.length !== 1) {
+        console.log("Veuillez sélectionner une seule forme Bézier pour Undo.");
+        return;
+      }
+      const shapeId = selectedIdsRef.current[0];
+      const shape = paper.project.activeLayer.children.find(
+        (item) => item.data?.id === shapeId && item.data.type === "bezier"
+      ) as paper.Path;
+      if (!shape || !shape.data.history || shape.data.history.length === 0) return;
+      const lastSegments = shape.data.history.pop();
+      shape.removeSegments();
+      lastSegments.forEach((seg) => shape.add(seg.clone()));
+      paper.view.update();
+      saveShapes();
+    };
+
+    // Exporter en SVG
+    const exportSVG = (): string | null => {
+      // Méthode simple : exporter directement le SVG
+      return paper.project.exportSVG({ asString: true });
+    };
+
+    // Exposition des mÃ©thodes via ref
+    useImperativeHandle(ref, () => ({
+      addShape,
+      addImage,
+      addText,
+      clearCanvas,
+      getShapesList,
+      removeShape,
+      updateShape,
+      moveShapeInLayer,
+      exportSVG,
+      getSelectedShapes,
+      selectShape,
+      deselectAll,
+      combineShapes,
+      addBezierPoint,
+      addBezierCurve,
+      convertToBezier,
+      undo,
+      setSelectionEnabled: (enabled: boolean) => {
+        selectionEnabledRef.current = enabled;
+      },
+    }));
+
+    return <canvas ref={canvasRef} style={style} />;
+  }
+);
+
+export default VectorCanvas;
