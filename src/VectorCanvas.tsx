@@ -73,6 +73,8 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
   const selectedIdsRef = useRef<Set<string>>(new Set());
   const historyRef = useRef<string[]>([]);
   const historyIndexRef = useRef<number>(-1);
+  const actionOpenRef = useRef(false);
+  const preActionIndexRef = useRef<number | null>(null);
 
   // ---------- Helpers ----------
   function getShapesList(): ShapeData[] {
@@ -124,24 +126,62 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
   }
 
   // ---------- History / Undo ----------
-  function snapshotProject(): string {
-    const handles = findHandlesLayer();
-    const vis = handles?.visible;
-    if (handles) handles.visible = false;
-    const json = paper.project.exportJSON({ asString: true });
-    if (handles) handles.visible = vis;
-    return json;
+  // Ancienne logique remplacée
+  function safeSnapshot(): string | null {
+    if (!paper.project) return null;
+    try {
+      const handles = findHandlesLayer();
+      const vis = handles?.visible;
+      if (handles) handles.visible = false;
+      const json = paper.project.exportJSON({ asString: true });
+      if (handles) handles.visible = vis;
+      return json;
+    } catch {
+      return null;
+    }
   }
-  function pushHistory() {
-    if (!paper.project) return;
-    const snap = snapshotProject();
+
+  function pushHistoryFromCurrentProject(force = false) {
+    const snap = safeSnapshot();
+    if (!snap) return;
     if (historyIndexRef.current < historyRef.current.length - 1) {
       historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
     }
+    const last = historyRef.current[historyRef.current.length - 1];
+    if (!force && last === snap) return;
     historyRef.current.push(snap);
-    if (historyRef.current.length > 50) historyRef.current.shift();
+    if (historyRef.current.length > 100) historyRef.current.shift();
     historyIndexRef.current = historyRef.current.length - 1;
   }
+
+  function startUserAction() {
+    if (actionOpenRef.current) return;
+    actionOpenRef.current = true;
+    // Forcer un snapshot même si identique pour ancrer l'action (permet Undo correct sur petits drags)
+    pushHistoryFromCurrentProject(true);
+    preActionIndexRef.current = historyIndexRef.current;
+  }
+
+  function endUserAction(changed: boolean) {
+    if (!actionOpenRef.current) return;
+    if (changed) {
+      // Snapshot final (déduplication normale)
+      pushHistoryFromCurrentProject(false);
+    } else {
+      // Pas de changement: retirer le snapshot forcé pour ne pas polluer l'historique
+      if (preActionIndexRef.current !== null) {
+        const idx = preActionIndexRef.current;
+        if (idx >= 0 && idx < historyRef.current.length) {
+          historyRef.current.splice(idx, 1);
+          // Réajuste l'index courant
+          historyIndexRef.current = Math.min(idx - 1, historyRef.current.length - 1);
+        }
+      }
+    }
+    actionOpenRef.current = false;
+    preActionIndexRef.current = null;
+  }
+
   function restoreSnapshot(json: string) {
     if (!paper.project) return;
     paper.project.clear();
@@ -160,7 +200,12 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     emitSelectionChange();
     paper.view.update();
   }
+
   function undo(): boolean {
+    if (actionOpenRef.current) {
+      // Ferme proprement une action incomplète
+      endUserAction(false);
+    }
     if (historyIndexRef.current > 0) {
       historyIndexRef.current--;
       restoreSnapshot(historyRef.current[historyIndexRef.current]);
@@ -170,13 +215,9 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
   }
 
   // ---------- Shape ops ----------
-  function refreshSnapshot() {
-    regenerateAllHandles();
-    props.onShapesChange?.();
-    pushHistory();
-  }
 
   function addShape(type: string, color: string, size: number, strokeColor?: string, x?: number, y?: number): string {
+    startUserAction();
     if (!canvasRef.current) return "";
     if (!paper.project) {
       try {
@@ -254,11 +295,12 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     handlesLayer.bringToFront();
     paper.view.update();
     props.onShapesChange?.();
-    pushHistory();
+    endUserAction(true);
     return id;
   }
 
   function deleteShape(id: string) {
+    startUserAction();
     const main = findMainLayer();
     if (!main) return;
     const it = main.children.find((c: any) => c.data?.id === id);
@@ -269,11 +311,11 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     emitSelectionChange();
     purgeOrphanHandles();
     props.onShapesChange?.();
-    paper.view.update();
-    pushHistory();
+    endUserAction(true);
   }
 
   function clearCanvas() {
+    startUserAction();
     const main = findMainLayer();
     const handles = findHandlesLayer();
     main?.removeChildren();
@@ -281,8 +323,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     selectedIdsRef.current.clear();
     emitSelectionChange();
     props.onShapesChange?.();
-    paper.view.update();
-    pushHistory();
+    endUserAction(true);
   }
 
   function setHandlesVisibility(visible: boolean) {
@@ -294,6 +335,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
   }
 
   function moveLayer(shapeId: string, dir: "up" | "down") {
+    startUserAction();
     const main = findMainLayer();
     if (!main) return;
     const idx = main.children.findIndex((c: any) => c.data?.id === shapeId);
@@ -302,10 +344,11 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     if (dir === "up" && idx < main.children.length - 1) main.insertChild(idx + 1, ch);
     if (dir === "down" && idx > 0) main.insertChild(idx - 1, ch);
     paper.view.update();
-    pushHistory();
+    endUserAction(true);
   }
 
   function changeShapeColor(id: string, color: string) {
+    startUserAction();
     const main = findMainLayer();
     if (!main) return;
     const it: any = main.children.find((c: any) => c.data?.id === id);
@@ -316,18 +359,19 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       regenerateAllHandles();
       paper.view.update();
       props.onShapesChange?.();
-      pushHistory();
+      endUserAction(true);
     } catch {}
   }
 
   function changeShapeProperty(id: string, prop: string, value: any) {
+    startUserAction();
     const main = findMainLayer();
     if (!main) return;
     const it: any = main.children.find((c: any) => c.data?.id === id);
     if (!it) return;
     (it as any)[prop] = value;
     paper.view.update();
-    pushHistory();
+    endUserAction(true);
   }
 
   function exportSVG() {
@@ -344,6 +388,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
   }
 
   function scaleShapes(ids: string[], factor: number) {
+    startUserAction();
     const main = findMainLayer();
     if (!main) return;
     ids.forEach(id => {
@@ -353,7 +398,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     regenerateAllHandles();
     props.onShapesChange?.();
     paper.view.update();
-    pushHistory();
+    endUserAction(true);
   }
 
   // UTIL: génère un id simple
@@ -363,6 +408,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
 
   // PATCH: assure que le résultat des opérations booléennes garde un id
   function combineShapes(idA: string, idB: string, op: 'union' | 'subtract' | 'intersect' | 'exclude') {
+    startUserAction();
     const a = findShapeById(idA);
     const b = findShapeById(idB);
     if (!a || !b) return;
@@ -395,7 +441,9 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     }
 
     selectShapes([newId]);
-    refreshSnapshot();
+    regenerateAllHandles();
+    props.onShapesChange?.();
+    endUserAction(true);
   }
 
   // Remplace entièrement getNormalizedShapePaths pour corriger:
@@ -494,7 +542,9 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     main.activate();
     handles.bringToFront();
     regenerateAllHandles();
-    if (historyRef.current.length === 0) pushHistory();
+    if (historyRef.current.length === 0) {
+      pushHistoryFromCurrentProject(); // snapshot initial
+    }
 
     return () => {
       try {
@@ -547,9 +597,14 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
 
     tool.onMouseDown = (event: any) => {
       initialDownPoint = event.point.clone();
+
+      // Ouvre systématiquement une action (idempotent) pour garantir un snapshot avant tout drag (y compris points Bézier)
+      startUserAction(); // <<< AJOUT GLOBAL
+
       const hitHandle = hitTestHandle(event.point);
 
       if (hitHandle?.item?.data) {
+        // (startUserAction supprimé ici)
         draggedHandle = hitHandle.item;
         draggedHandleType = draggedHandle.data.type;
         const pathId = draggedHandle.data.pathId;
@@ -557,7 +612,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
         originalPath = findMainLayer()?.children.find((c: any) => c.data?.id === pathId);
 
         if (originalPath && originalPath.segments[originalSegIdx]) {
-          // Si ALT et aucun handle, on attend le premier drag pour définir la direction
           if (draggedHandleType === 'point' && event.modifiers.alt) {
             const seg = originalPath.segments[originalSegIdx];
             if ((seg.handleIn?.isZero?.() || (seg.handleIn.x === 0 && seg.handleIn.y === 0)) &&
@@ -583,8 +637,9 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       if (hit?.item) {
         const shapeItem = resolveShapeWithId(hit.item);
         if (shapeItem?.data?.id) {
+          // (startUserAction supprimé ici)
           if (shift) toggleSelectShape(shapeItem.data.id);
-            else if (!selectedIdsRef.current.has(shapeItem.data.id)) selectShapes([shapeItem.data.id]);
+          else if (!selectedIdsRef.current.has(shapeItem.data.id)) selectShapes([shapeItem.data.id]);
           draggedItemIds = new Set(selectedIdsRef.current);
           isDragging = true;
           somethingChanged = false;
@@ -593,6 +648,8 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
         }
       }
 
+      // Si simple clic vide: on ferme immédiatement l'action sans snapshot après (car pas de changement)
+      endUserAction(false);
       selectShapes([]);
       isDragging = false;
     };
@@ -600,15 +657,20 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     tool.onMouseDrag = (event: any) => {
       if (!isDragging) return;
 
+      // Sécurité: si pour une raison quelconque l'action n'a pas été ouverte (hitTest raté),
+      // on la démarre juste avant la première mutation.
+      if (!actionOpenRef.current) {
+        startUserAction();
+      }
+
       if (draggedHandle && draggedHandleType && originalPath && originalSegIdx >= 0) {
         const segment = originalPath.segments[originalSegIdx];
         if (!segment) return;
         try {
           if (draggedHandleType === "point") {
-            // Création initiale des poignées pendant ALT-drag (direction = mouvement)
             if (altPrimed && initialDownPoint) {
               const vec = event.point.subtract(initialDownPoint);
-              if (vec.length > 10) { // Seuil minimal pour éviter création accidentelle
+              if (vec.length > 10) {
                 segment.handleOut = vec.normalize(vec.length * 0.5);
                 segment.handleIn = vec.normalize(-vec.length * 0.5);
                 ensureSegmentHandleVisuals(originalPath, originalSegIdx);
@@ -630,7 +692,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
         return;
       }
 
-      // Déplacement formes sélectionnées
       const delta = event.delta;
       const main = findMainLayer();
       if (!main) return;
@@ -649,11 +710,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     };
 
     tool.onMouseUp = () => {
-      if (isDragging && somethingChanged) {
-        purgeOrphanHandles();
-        pushHistory();
-        props.onShapesChange?.();
-      }
+      endUserAction(somethingChanged);
       isDragging = false;
       draggedHandle = null;
       draggedHandleType = null;
@@ -662,6 +719,9 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       somethingChanged = false;
       altPrimed = false;
       initialDownPoint = null;
+      if (somethingChanged) {
+        props.onShapesChange?.();
+      }
     };
 
     tool.activate();
