@@ -1,429 +1,526 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { Button } from '@canva/app-ui-kit';
-import VectorCanvas, { VectorCanvasRef, ShapeData } from "./VectorCanvas";
-import { addElementAtPoint } from "@canva/design";
-import { Plus, Minus, Circle, Eye, EyeOff, Trash2, CloudUpload, RotateCcw, X } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import VectorCanvas, { VectorCanvasRef, ShapeData } from './VectorCanvas';
+import {
+  Circle as IconCircle,
+  Square as IconSquare,
+  Triangle as IconTriangle,
+  Diamond as IconDiamond,
+  Hexagon as IconHexagon,
+  Pentagon as IconPentagon,
+  Heart as IconHeart,
+  Star as IconStar,
+  Trash2,
+  Upload,
+  RotateCcw,
+  Expand,
+  Eye,
+  EyeOff,
+  ArrowUp,
+  ArrowDown,
+  ZoomIn,
+  ZoomOut
+} from 'lucide-react';
+import { addElementAtPoint } from '@canva/design'; // <— AJOUT
 
+type CombineOp = 'union' | 'subtract' | 'intersect' | 'exclude';
 
-// petit composant réutilisable : panneau de combinaison (4 boutons)
-function CombinePanel({
-  onCombine,
-  disabled
-}: {
-  onCombine: (op: 'union' | 'subtract' | 'exclude' | 'intersect') => void;
-  disabled: boolean;
-}) {
-  const btnStyle: React.CSSProperties = {
-    padding: '8px 10px',
-    borderRadius: 6,
-    border: '1px solid #ddd',
-    background: disabled ? '#f1f3f5' : '#007bff',
-    color: disabled ? '#999' : '#fff',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    fontSize: 13,
-    fontWeight: 600
-  };
-  // 2 colonnes x 2 lignes, texte (français)
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 12, alignItems: 'center', width: 320 }}>
-      <button onClick={() => onCombine('union')} disabled={disabled} title="Additionner" style={btnStyle}>Additionner</button>
-      <button onClick={() => onCombine('subtract')} disabled={disabled} title="Soustraire" style={btnStyle}>Soustraire</button>
-      <button onClick={() => onCombine('exclude')} disabled={disabled} title="Exclure" style={btnStyle}>Exclure</button>
-      <button onClick={() => onCombine('intersect')} disabled={disabled} title="Intersection" style={btnStyle}>Intersection</button>
-    </div>
-  );
-}
+const SHAPES = [
+  { key: 'circle', label: 'Cercle', Icon: IconCircle },
+  { key: 'square', label: 'Carré', Icon: IconSquare },
+  { key: 'triangle', label: 'Triangle', Icon: IconTriangle },
+  { key: 'diamond', label: 'Losange', Icon: IconDiamond },
+  { key: 'pentagon', label: 'Pentagone', Icon: IconPentagon },
+  { key: 'hexagon', label: 'Hexagone', Icon: IconHexagon },
+  { key: 'heart', label: 'Cœur', Icon: IconHeart },
+  { key: 'star', label: 'Étoile', Icon: IconStar }
+];
 
-// petit composant réutilisable : panneau d'actions (clear / add-to-canva / undo)
-function AlterPanel({
-  onClear,
-  onAddToCanva,
-  onUndo
-}: {
-  onClear: () => void;
-  onAddToCanva: () => Promise<void> | void;
-  onUndo: () => void;
-}) {
-  const iconBtn: React.CSSProperties = { width: 36, height: 36, padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' };
-  return (
-    <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
-      <Button variant="secondary" onClick={onClear} title="Vider le canvas" aria-label="Vider le canvas" style={iconBtn}><Trash2 size={16} /></Button>
-      <Button variant="primary" onClick={onAddToCanva} title="Ajouter à Canva" aria-label="Ajouter à Canva" style={iconBtn}><CloudUpload size={16} /></Button>
-      <Button variant="secondary" onClick={onUndo} title="Annuler (Undo)" aria-label="Annuler" style={iconBtn}><RotateCcw size={16} /></Button>
-    </div>
-  );
-}
-
-function App() {
-  const canvasRef = useRef<VectorCanvasRef>(null);
-  const [shapeSize, setShapeSize] = useState(50);
-  const [selectedShapes, setSelectedShapes] = useState<ShapeData[]>([]);
+export default function App() {
+  const canvasRef = useRef<VectorCanvasRef | null>(null);
   const [shapes, setShapes] = useState<ShapeData[]>([]);
-  const [handlesVisible, setHandlesVisible] = useState<Record<string, boolean>>({});
+  const [selected, setSelected] = useState<ShapeData[]>([]);
+  const [pushing, setPushing] = useState(false);
+  const [history, setHistory] = useState<ShapeData[][]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [enlargeMode, setEnlargeMode] = useState(false);
+  const [handlesVisible, setHandlesVisible] = useState(true);
+  const [canvaReady, setCanvaReady] = useState(false);
 
-  const palette = [
-    { key: 'circle', label: 'Cercle', preview: <Circle size={20} /> },
-    { key: 'square', label: 'Carré', preview: <div style={{ width: 16, height: 16, border: '2px solid #333' }} /> },
-    { key: 'triangle', label: 'Triangle', preview: <div style={{ width: 0, height: 0, borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderBottom: '14px solid #333' }} /> },
-    { key: 'diamond', label: 'Losange', preview: <div style={{ width: 12, height: 12, border: '2px solid #333', transform: 'rotate(45deg)' }} /> },
-    { key: 'star', label: 'Étoile', preview: <span style={{ fontSize: 16 }}>★</span> }
-  ];
-
-  const refreshShapes = useCallback(() => {
-    if (!canvasRef.current) return;
-    const list = canvasRef.current.getShapesList();
+  function refreshShapes(pushHistory = true) {
+    const list = canvasRef.current?.getShapesList?.() || [];
     setShapes(list);
-  }, []);
-
-  const handleAddFromPalette = (type: string) => {
-    if (!canvasRef.current) {
-      console.warn("canvasRef not ready");
-      return;
+    if (pushHistory) {
+      const snapshot = list.map(s => ({ ...s }));
+      const next = history.slice(0, historyIndex + 1);
+      next.push(snapshot);
+      setHistory(next);
+      setHistoryIndex(next.length - 1);
     }
-    const x = 150;
-    const y = 100;
+  }
 
-    if (typeof canvasRef.current.addShape !== "function") {
-      console.warn("addShape not exposed on VectorCanvas");
-      return;
-    }
+  function handleSelectionChange(sel: ShapeData[]) {
+    setSelected(sel);
+  }
 
-    const id = canvasRef.current.addShape(type, "#ff0000", shapeSize, undefined, x, y);
-    canvasRef.current.convertToPath?.();
-    // ensure handles state tracks new shape (visible by default)
-    setHandlesVisible(prev => ({ ...prev, [id]: true }));
+  function handleAddShape(type: string) {
+    canvasRef.current?.addShape?.(type, '#ff0000', 150);
+    refreshShapes();
+  }
 
+  function canCombine() {
+    return selected.length === 2;
+  }
+
+  function handleCombine(op: CombineOp) {
+    if (!canCombine()) return;
+    const [a, b] = selected;
+    canvasRef.current?.combineShapes?.(a.id, b.id, op);
     setTimeout(() => {
-      refreshShapes();
       const list = canvasRef.current?.getShapesList?.() || [];
       setShapes(list);
-      const added = list.find((s) => s.id === id);
-      if (added) {
-        setSelectedShapes([added]);
-        setShapeSize(added.size || shapeSize);
-      } else {
-        console.warn("Shape added but not found in getShapesList()", id, list);
+      const selIds = canvasRef.current?.getSelectedIds?.() || [];
+      setSelected(list.filter(s => selIds.includes(s.id)));
+      refreshShapes();
+    }, 0);
+  }
+
+  function handleClear() {
+    canvasRef.current?.clearCanvas?.();
+    setSelected([]);
+    refreshShapes();
+  }
+
+  function handleChangeLayerColor(id: string, color: string) {
+    canvasRef.current?.changeShapeColor?.(id, color);
+    refreshShapes(false);
+  }
+
+  function handleUndo() {
+    if (historyIndex <= 0) return;
+    const prevIndex = historyIndex - 1;
+    const prev = history[prevIndex];
+    canvasRef.current?.clearCanvas?.();
+    prev.forEach(s => {
+      canvasRef.current?.addShape?.(s.type, s.fillColor || '#ff0000', 150);
+    });
+    setHistoryIndex(prevIndex);
+    const list = canvasRef.current?.getShapesList?.() || [];
+    setShapes(list);
+    setSelected([]);
+  }
+
+  async function handlePushToCanva() {
+    if (pushing || shapes.length === 0) return;
+    setPushing(true);
+    try {
+      // Récupération paths normalisés
+      const norm = (canvasRef.current as any)?.getNormalizedShapePaths?.();
+      if (!norm?.paths?.length) {
+        console.warn('Aucun path à envoyer');
+        return;
       }
-    }, 120);
-  };
 
-  const handleClearCanvas = () => {
-    canvasRef.current?.clearCanvas();
-    setShapes([]);
-    setSelectedShapes([]);
-    setHandlesVisible({});
-  };
-
-  const handleToggleHandles = (shapeId: string) => {
-    const current = !!handlesVisible[shapeId];
-    const next = !current;
-    setHandlesVisible(prev => ({ ...prev, [shapeId]: next }));
-    canvasRef.current?.setHandlesVisibility?.(shapeId, next);
-  };
-
-  // combine two selected shapes: operation = 'union' | 'subtract' | 'exclude' | 'intersect'
-  const handleCombineShapes = (operation: 'union' | 'subtract' | 'exclude' | 'intersect') => {
-    if (!canvasRef.current) return;
-    if (selectedShapes.length !== 2) {
-      console.warn("Sélectionner exactement 2 formes pour combiner");
-      return;
-    }
-    const [a, b] = selectedShapes;
-    if (typeof canvasRef.current.combineShapes === "function") {
-      canvasRef.current.combineShapes(a.id, b.id, operation);
-      // refresh and clear selection
-      setTimeout(() => {
-        refreshShapes();
-        setSelectedShapes([]);
-      }, 80);
-    } else {
-      console.warn("combineShapes non implémenté dans VectorCanvas");
-    }
-  };
-
-  // cliquer sur un calque => sélectionner / désélectionner (support basique multi-select)
-  const handleLayerClick = (shape: ShapeData, e: React.MouseEvent) => {
-    const exists = selectedShapes.find(s => s.id === shape.id);
-    // si utilisateur maintient Ctrl/Cmd, on bascule l'item dans la sélection
-    if (e.metaKey || e.ctrlKey) {
-      if (exists) {
-        setSelectedShapes(prev => prev.filter(s => s.id !== shape.id));
-      } else {
-        // limiter à 2 éléments pour les opérations de combinaison
-        setSelectedShapes(prev => (prev.length < 2 ? [...prev, shape] : prev));
+      // Si >30 paths on fusionne en une image (simpliste)
+      if (norm.paths.length > 30) {
+        const svg = canvasRef.current?.exportSVG?.();
+        if (!svg) return;
+        const cleaned = svg
+          .replace(/<\?xml.*?\?>/g, '')
+            .replace(/<!DOCTYPE[\s\S]*?>/g, '')
+          .trim();
+        const blob = new Blob([cleaned], { type: 'image/svg+xml' });
+        const dataUrl = await fileToDataURL(blob);
+        await addElementAtPoint({
+          type: 'image',
+          mimeType: 'image/svg+xml',
+          dataUrl,
+          top: 60,
+          left: 60,
+          width: norm.viewBox.width || 200,
+          height: norm.viewBox.height || 200
+        });
+        return;
       }
-      return;
-    }
-    // sinon clic simple => sélection unique / désélection si déjà seul sélectionné
-    if (exists && selectedShapes.length === 1) {
-      setSelectedShapes([]);
-    } else {
-      setSelectedShapes([shape]);
-    }
-  };
 
-  const getCurrentOrder = () => {
-    return shapes.slice().reverse();
-  };
-
-  const handleSizeChange = (newSize: number) => {
-    setShapeSize(newSize);
-    if (selectedShapes.length === 1) {
-      const id = selectedShapes[0].id;
-      canvasRef.current?.changeShapeProperty?.(id, 'size', newSize);
-      // update shapes list
-      setTimeout(refreshShapes, 0);
+      // Ajout en tant que shape vectoriel
+      await addElementAtPoint({
+        type: 'shape',
+        top: 60,
+        left: 60,
+        width: norm.viewBox.width,
+        height: norm.viewBox.height,
+        viewBox: norm.viewBox, // {top:0,left:0,width,height}
+        paths: norm.paths
+      });
+    } catch (e) {
+      console.error('Insertion Canva échouée', e);
+    } finally {
+      setPushing(false);
     }
-  };
+  }
+
+  function fileToDataURL(blob: Blob) {
+    return new Promise<string>((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => res(fr.result as string);
+      fr.onerror = () => rej(fr.error);
+      fr.readAsDataURL(blob);
+    });
+  }
+
+  function toggleEnlargeMode() {
+    setEnlargeMode(m => !m);
+  }
+
+  function toggleHandles() {
+    const next = !handlesVisible;
+    setHandlesVisible(next);
+    canvasRef.current?.setHandlesVisibility?.(next);
+  }
+
+  function scaleSelected(factor: number) {
+    if (!selected.length) return;
+    canvasRef.current?.scaleShapes?.(selected.map(s => s.id), factor);
+    refreshShapes(false);
+  }
+
+  useEffect(() => {
+    refreshShapes();
+    // eslint-disable-next-line
+  }, []);
 
   return (
-    <div style={{ padding: 20, maxWidth: 1000, margin: '0 auto', fontFamily: 'Arial, sans-serif', overflowX: 'hidden' }}>
-      {/* Palette scrollable */}
-      <div style={{
-        display: 'flex',
-        gap: 8,
-        overflowX: 'auto',
-        padding: '8px 4px',
-        marginBottom: 12,
-        background: '#f4f6f8',
-        borderRadius: 6,
-        border: '1px solid #e6e9ed'
-      }}>
-        {palette.map(p => (
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        margin: 0,
+        padding: 12,
+        fontFamily: 'sans-serif',
+        boxSizing: 'border-box',
+        overflow: 'hidden'
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 360,
+          height: '100%',
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+            gap: 12,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+          paddingRight: 4
+        }}
+      >
+        {/* Palette */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          {SHAPES.map(s => (
+            <button
+              key={s.key}
+              onClick={() => handleAddShape(s.key)}
+              title={s.label}
+              style={shapeBtnStyle}
+            >
+              <s.Icon size={18} strokeWidth={1.8} />
+            </button>
+          ))}
+        </div>
+
+        {/* Combinaisons */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 10,
+          width: '100%'
+        }}>
+          <button disabled={!canCombine()} onClick={() => handleCombine('union')} style={comboBtnStyle(!canCombine())}>
+            Union
+          </button>
+          <button disabled={!canCombine()} onClick={() => handleCombine('subtract')} style={comboBtnStyle(!canCombine())}>
+            Soustraction
+          </button>
+          <button disabled={!canCombine()} onClick={() => handleCombine('intersect')} style={comboBtnStyle(!canCombine())}>
+            Intersection
+          </button>
+            <button disabled={!canCombine()} onClick={() => handleCombine('exclude')} style={comboBtnStyle(!canCombine())}>
+            Exclusion
+          </button>
+        </div>
+
+        {/* Canvas */}
+        <div
+          style={{
+            border: '1px solid #ccc',
+            background: '#fff',
+            borderRadius: 6,
+            padding: 6,
+            display: 'flex',
+            justifyContent: 'center'
+          }}
+        >
+          <VectorCanvas
+            ref={canvasRef}
+            width={320}
+            height={240}
+            style={{ width: 320, height: 240, display: 'block' }}
+            onShapesChange={() => refreshShapes()}
+            onSelectionChange={handleSelectionChange}
+          />
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
-            key={p.key}
-            onClick={() => handleAddFromPalette(p.key)}
-            title={`Ajouter ${p.label}`}
+            onClick={handleClear}
+            title="Vider"
+            disabled={enlargeMode}
+            style={iconBtnStyle(enlargeMode, enlargeMode)}
+          >
+            <Trash2 size={18} />
+          </button>
+          <button
+            onClick={handlePushToCanva}
+            disabled={pushing || shapes.length === 0 || enlargeMode}
+            title="Ajouter à Canva"
+            style={iconBtnStyle(enlargeMode, pushing || shapes.length === 0 || enlargeMode)}
+          >
+            <Upload size={18} />
+          </button>
+          <button
+            onClick={handleUndo}
+            disabled={historyIndex <= 0 || enlargeMode}
+            title="Undo"
+            style={iconBtnStyle(enlargeMode, historyIndex <= 0 || enlargeMode)}
+          >
+            <RotateCcw size={18} />
+          </button>
+          <button
+            onClick={toggleEnlargeMode}
+            title="Mode agrandir/rétrécir"
             style={{
-              minWidth: 44,
-              height: 44,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: '#fff',
-              border: '1px solid #ddd',
-              borderRadius: 6,
-              padding: 6,
-              cursor: 'pointer'
+              ...iconBtnStyle(false, false),
+              background: enlargeMode ? '#0066ff' : '#fff',
+              color: enlargeMode ? '#fff' : '#000',
+              borderColor: enlargeMode ? '#0052cc' : '#ccc'
             }}
           >
-            {p.preview}
+            <Expand size={18} />
           </button>
-        ))}
-      </div>
+          {enlargeMode && (
+            <>
+              <button
+                onClick={() => scaleSelected(1.15)}
+                title="Agrandir sélection"
+                style={iconBtnStyle(false, !selected.length)}
+                disabled={!selected.length}
+              >
+                <ZoomIn size={18} />
+              </button>
+              <button
+                onClick={() => scaleSelected(0.85)}
+                title="Rétrécir sélection"
+                style={iconBtnStyle(false, !selected.length)}
+                disabled={!selected.length}
+              >
+                <ZoomOut size={18} />
+              </button>
+            </>
+          )}
+          <button
+            onClick={toggleHandles}
+            title={handlesVisible ? 'Masquer points Bézier' : 'Afficher points Bézier'}
+            disabled={enlargeMode}
+            style={iconBtnStyle(enlargeMode, enlargeMode)}
+          >
+            {handlesVisible ? <Eye size={18} /> : <EyeOff size={18} />}
+          </button>
+        </div>
 
-      {/* Ligne de combinaison : 4 boutons en 2x2 */}
-      <CombinePanel onCombine={handleCombineShapes} disabled={selectedShapes.length !== 2} />
-
-      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-        {/* Gauche : Editor Canvas */}
-        <div style={{ flexShrink: 0 }}>
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>Éditeur</div>
-          <div style={{
-            border: '1px solid #e6e9ed',
-            borderRadius: 8,
-            padding: 0,
-            background: '#fff',
-            width: 300,
-            height: 240,
-            boxSizing: 'border-box',
-            overflow: 'hidden'
-          }}>
-            <VectorCanvas
-              ref={canvasRef}
-              width={300}
-              height={240}
-              onShapesChange={() => { refreshShapes(); }}
-              onSelectionChange={setSelectedShapes}
-              style={{ width: "100%", height: "100%", display: 'block', background: '#ffffff' }}
-            />
-          </div>
-
-          <AlterPanel 
-            onClear={handleClearCanvas} 
-            onAddToCanva={async () => { 
-              const svg = canvasRef.current?.exportSVG?.(); 
-              if (!svg) return; 
-              try { 
-                await addElementAtPoint({ type: 'svg', svg }, { x: 200, y: 200 }); 
-              } catch(e){ 
-                console.warn(e); 
-              } 
-            }} 
-            onUndo={() => { 
-              const ok = canvasRef.current?.undo?.(); 
-              if (ok) setTimeout(() => refreshShapes(), 40); 
-            }} 
-          />
-
-          {/* Liste des Calques sous les boutons */}
-          <div style={{ marginTop: 20 }}>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Calques ({shapes.length})</div>
-            <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-              {shapes.length === 0 && <div style={{ color: '#666' }}>Aucune forme</div>}
-              {shapes.map((s) => {
-                const currentOrder = getCurrentOrder();
-                const orderIndex = currentOrder.findIndex(it => it.id === s.id);
-                const isTop = orderIndex === 0;
-                const isBottom = orderIndex === currentOrder.length - 1;
-                const selected = selectedShapes.some(sel => sel.id === s.id);
-
-                return (
+        {/* Calques */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ fontWeight: 600, fontSize: 13 }}>Calques</div>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+              maxHeight: 180,
+              overflowY: 'auto',
+              border: '1px solid #eee',
+              padding: 6,
+              borderRadius: 6
+            }}
+          >
+            {shapes.map(s => {
+              const isSel = selected.some(sel => sel.id === s.id);
+              return (
+                <div
+                  key={s.id}
+                  onClick={() => canvasRef.current?.selectShapes?.([s.id])}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '4px 6px',
+                    border: '1px solid ' + (isSel ? '#4d8dff' : '#ddd'),
+                    background: isSel ? '#ddeaff' : '#fafafa',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    transition: 'background .15s, border-color .15s'
+                  }}
+                >
+                  {/* Sélecteur de couleur direct */}
                   <div
-                    key={s.id}
-                    onClick={(e) => handleLayerClick(s, e)}
-                    role="button"
-                    tabIndex={0}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: 10,
-                      border: '1px solid #eee',
-                      borderRadius: 6,
-                      marginBottom: 8,
-                      background: selected ? '#e8f2ff' : '#fff',
-                      borderColor: selected ? '#b6dbff' : '#eee',
-                      cursor: 'pointer',
-                      userSelect: 'none'
+                      position: 'relative',
+                      width: 18,
+                      height: 18,
+                      borderRadius: '50%',
+                      border: '1px solid #444',
+                      background: s.fillColor || '#ff0000',
+                      flex: '0 0 18px'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // déclenche l'input caché
+                      const inp = document.getElementById(`clr-${s.id}`) as HTMLInputElement | null;
+                      inp?.click();
                     }}
                   >
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <>
-                        <input
-                          type="color"
-                          id={`color-${s.id}`}
-                          value={s.fillColor && /^#([0-9A-F]{3}){1,2}$/i.test(s.fillColor) ? s.fillColor : '#ff0000'}
-                          onChange={(e) => {
-                            const color = e.target.value;
-                            // update local preview immediately
-                            setShapes(prev => prev.map(p => p.id === s.id ? { ...p, fillColor: color } : p));
-                            // call the method on the ref (safe optional chaining)
-                            canvasRef.current?.changeShapeColor?.(s.id, color);
-                          }}
-                          style={{ display: 'none' }}
-                        />
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const el = document.getElementById(`color-${s.id}`) as HTMLInputElement | null;
-                            el?.click();
-                          }}
-                          title="Changer la couleur"
-                          aria-label="Changer la couleur"
-                          style={{
-                            width: 20,
-                            height: 20,
-                            padding: 0,
-                            border: '1px solid #ddd',
-                            borderRadius: '50%',
-                            background: s.fillColor || '#ff0000',
-                            cursor: 'pointer'
-                          }}
-                        />
-                      </>
-                      <div style={{ fontSize: 13 }}>
-                        <div style={{ fontWeight: 600, textTransform: 'capitalize' }}>{s.type}</div>
-                        <div style={{ fontSize: 12, color: '#666' }}>{s.size}px</div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleToggleHandles(s.id); }}
-                        title={handlesVisible[s.id] ? "Cacher points" : "Afficher points"}
-                        style={{
-                          width: 34,
-                          height: 34,
-                          borderRadius: 6,
-                          border: 'none',
-                          background: 'transparent',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#333'
-                        }}
-                      >
-                        {handlesVisible[s.id] ? <Eye size={16} /> : <EyeOff size={16} />}
-                      </button>
-
-                      <div style={{ width: 6 }} />
-
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer(s.id, 'up'); }}
-                          title="Monter"
-                          disabled={isTop}
-                          style={{
-                            width: 30,
-                            height: 30,
-                            borderRadius: 6,
-                            border: 'none',
-                            background: isTop ? '#f1f3f5' : '#6c757d',
-                            color: isTop ? '#bdbfc1' : '#fff',
-                            cursor: isTop ? 'not-allowed' : 'pointer'
-                          }}
-                        >
-                          ↑
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer(s.id, 'down'); }}
-                          title="Descendre"
-                          disabled={isBottom}
-                          style={{
-                            width: 30,
-                            height: 30,
-                            borderRadius: 6,
-                            border: 'none',
-                            background: isBottom ? '#f1f3f5' : '#6c757d',
-                            color: isBottom ? '#bdbfc1' : '#fff',
-                            cursor: isBottom ? 'not-allowed' : 'pointer'
-                          }}
-                        >
-                          ↓
-                        </button>
-                      </div>
-                    </div>
+                    <input
+                      id={`clr-${s.id}`}
+                      type="color"
+                      value={s.fillColor || '#ff0000'}
+                      onChange={(e) => {
+                        handleChangeLayerColor(s.id, e.target.value);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        opacity: 0,
+                        cursor: 'pointer'
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
 
-        {/* Droite : Propriétés + Calques */}
-        <div style={{ flex: 1, minWidth: 200 }}>
-          {/* Propriétés */}
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Propriétés</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <label htmlFor="size-input">Taille :</label>
-              <input
-                id="size-input"
-                type="number"
-                value={shapeSize}
-                onChange={(e) => handleSizeChange(parseInt(e.target.value) || 50)}
-                min="1"
-                max="200"
-                style={{
-                  width: 60,
-                  padding: '4px 6px',
-                  border: '1px solid #ccc',
-                  borderRadius: 4
-                }}
-              />
-              <span style={{ fontSize: 12, color: '#666' }}>px</span>
-            </div>
-            <div style={{ fontSize: 12, color: '#666' }}>
-              {selectedShapes.length > 0 ? `${selectedShapes.length} forme(s) sélectionnée(s)` : 'Aucune sélection'}
-            </div>
+                  <span style={{ fontSize: 11, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {s.type}
+                  </span>
+
+                  <div style={{ display: 'flex', gap: 2 }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Monter = vers l'avant (z-index supérieur)
+                        canvasRef.current?.moveLayer?.(s.id, 'up');
+                        refreshShapes(false);
+                      }}
+                      title="Monter"
+                      style={layerOrderBtnStyle}
+                    >
+                      <ArrowUp size={14} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Descendre = vers l'arrière (z-index inférieur)
+                        canvasRef.current?.moveLayer?.(s.id, 'down');
+                        refreshShapes(false);
+                      }}
+                      title="Descendre"
+                      style={layerOrderBtnStyle}
+                    >
+                      <ArrowDown size={14} />
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      canvasRef.current?.deleteShape?.(s.id);
+                      refreshShapes();
+                    }}
+                    style={deleteBtnStyle}
+                    title="Supprimer"
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
+            {shapes.length === 0 && <div style={{ fontSize: 11, color: '#777' }}>Aucune forme</div>}
           </div>
         </div>
+        {!canvaReady && <div style={{fontSize:11,color:'#777'}}>En attente de Canva...</div>}
       </div>
     </div>
   );
 }
 
-export default App;
+const shapeBtnStyle: React.CSSProperties = {
+  aspectRatio: '1 / 1',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  border: '1px solid #D0D0D0',
+  background: '#FFFFFF',
+  borderRadius: 6,
+  cursor: 'pointer',
+  padding: 0
+};
+
+const comboBtnStyle = (disabled: boolean): React.CSSProperties => ({
+  padding: '8px 10px',
+  fontSize: 12,
+  border: '1px solid #ccc',
+  background: disabled ? '#f0f0f0' : '#fff',
+  cursor: disabled ? 'default' : 'pointer',
+  borderRadius: 6,
+  boxShadow: '0 1px 2px rgba(0,0,0,0.06)'
+});
+
+const iconBtnStyle = (_enlarge: boolean, disabled?: boolean): React.CSSProperties => ({
+  height: 44,
+  width: 44,
+  borderRadius: 10,
+  border: '1px solid #ccc',
+  background: '#fff',
+  fontSize: 18,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: disabled ? 'not-allowed' : 'pointer',
+  boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+  padding: 0,
+  opacity: disabled ? 0.5 : 1,
+  transition: 'background .15s, color .15s, border-color .15s'
+});
+
+const layerOrderBtnStyle = {
+  border: '1px solid #ccc',
+  background: '#fff',
+  padding: 2,
+  borderRadius: 4,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  height: 22,
+  width: 22
+};
+
+const deleteBtnStyle: React.CSSProperties = {
+  border: 'none',
+  background: 'transparent',
+  color: '#c00',
+  cursor: 'pointer',
+  fontSize: 14,
+  lineHeight: 1,
+  padding: 0,
+  opacity: 1
+};
