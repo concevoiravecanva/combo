@@ -41,7 +41,7 @@ export default function App() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   // const [enlargeMode, setEnlargeMode] = useState(false); // removed
   const [handlesVisible, setHandlesVisible] = useState(true);
-  // removed canvaReady state (unused after removal of waiting message)
+  const [helpOpen, setHelpOpen] = useState(false); // Add this state
 
   function refreshShapes(pushHistory = true) {
     const list = canvasRef.current?.getShapesList?.() || [];
@@ -168,6 +168,53 @@ export default function App() {
     canvasRef.current?.setHandlesVisibility?.(next);
   }
 
+  // Keyboard shortcuts handler
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.repeat) return;
+      if (e.key === 'Enter') {
+        handlePushToCanva();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        handleClear();
+      } else if (e.key === 'Escape') {
+        setSelected([]);
+      } else if (/^[1-8]$/.test(e.key)) {
+        const idx = parseInt(e.key, 10) - 1;
+        if (SHAPES[idx]) handleAddShape(SHAPES[idx].key);
+      } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        // Nudge selection
+        if (selected.length > 0 && canvasRef.current) {
+          const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
+          const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+          const step = e.shiftKey ? 10 : 1;
+          selected.forEach(s => {
+            canvasRef.current?.nudgeShape?.(s.id, dx * step, dy * step);
+          });
+          refreshShapes(false);
+        }
+      } else if (e.key === '/' || e.key === '-') {
+        // Scale selection
+        if (selected.length > 0 && canvasRef.current) {
+          const scale = e.key === '/' ? 1.1 : 0.9;
+          selected.forEach(s => {
+            canvasRef.current?.scaleShapes?.([s.id], scale);
+          });
+          refreshShapes(false);
+        }
+      } else if (e.key === '[') {
+        // Move layer down
+        if (selected.length > 0 && canvasRef.current) {
+          selected.forEach(s => {
+            canvasRef.current?.moveLayer?.(s.id, 'down');
+          });
+          refreshShapes(false);
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selected, shapes, handlesVisible, pushing, historyIndex]);
+
   useEffect(() => {
     refreshShapes();
     // eslint-disable-next-line
@@ -194,8 +241,8 @@ export default function App() {
           display: 'flex',
           flexDirection: 'column',
           gap: 12,
-          overflowY: 'auto',
-          overflowX: 'hidden',
+          overflowY: 'auto',    // Enable vertical scrolling only
+          overflowX: 'hidden',  // Disable horizontal scrolling
           WebkitOverflowScrolling: 'touch',
           paddingRight: 4
         }}
@@ -428,7 +475,74 @@ export default function App() {
             {shapes.length === 0 && <div style={{ fontSize: 11, color: '#777' }}>No shapes</div>}
           </div>
         </div>
-        {/* Removed "Waiting for Canva..." */}
+
+        {/* Help / Shortcuts collapsible */}
+        <div
+          style={{
+            marginTop: 16,
+            border: '1px solid #eee',
+            borderRadius: 6,
+            background: '#fafafa',
+            fontSize: 12,
+            color: '#444',
+            overflow: 'hidden'
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setHelpOpen(o => !o)}
+            aria-expanded={helpOpen}
+            style={{
+              all: 'unset',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-start', // Remove space-between so "+" is not pushed to edge
+              width: '100%',
+              cursor: 'pointer',
+              padding: '8px 10px',
+              fontWeight: 600,
+              background: helpOpen ? '#f2f2f2' : '#fafafa'
+            }}
+            title="Toggle help panel"
+          >
+            <span>Help / Shortcuts</span>
+            {/* Removed the "+" / "−" icon */}
+          </button>
+          {helpOpen && (
+            <div style={{ padding: '8px 12px', lineHeight: 1.4 }}>
+              <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>Shortcuts</div>
+              <ul style={{ margin: '0 0 8px', paddingLeft: 16 }}>
+                <li>Enter: Push shapes to Canva</li>
+                <li>Delete / Backspace: Delete selection</li>
+                <li>Esc: Clear selection</li>
+                <li>1–8: Add palette shape</li>
+                <li>Click / Shift+Click: Select / multi-select</li>
+                <li>Arrow keys: Nudge (Shift = 10px)</li>
+                <li>/: Scale +10% | -: Scale -10%</li>
+                <li>D: Duplicate selection</li>
+                <li>[ / ]: Move layer down / up</li>
+                <li>Cmd/Ctrl+Z: Undo</li>
+              </ul>
+              <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>Buttons</div>
+              <ul style={{ margin: 0, paddingLeft: 16 }}>
+                <li>Shape palette: Add shape</li>
+                <li>Union / Subtract / Intersect / Exclude: Boolean ops</li>
+                <li>Trash: Clear canvas</li>
+                <li>Upload: Push to Canva</li>
+                <li>Undo: Revert last change</li>
+                <li>Eye: Toggle Bezier handles</li>
+                <li>Layer list:
+                  <ul style={{ margin: '4px 0 0', paddingLeft: 14 }}>
+                    <li>Color dot: Change fill</li>
+                    <li>Up / Down: Reorder</li>
+                    <li>+ / –: Scale ±10%</li>
+                    <li>✕: Delete</li>
+                  </ul>
+                </li>
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
