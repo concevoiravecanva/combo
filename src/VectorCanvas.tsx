@@ -126,7 +126,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
   }
 
   // ---------- History / Undo ----------
-  // Ancienne logique remplacée
   function safeSnapshot(): string | null {
     if (!paper.project) return null;
     try {
@@ -157,7 +156,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
   function startUserAction() {
     if (actionOpenRef.current) return;
     actionOpenRef.current = true;
-    // Forcer un snapshot même si identique pour ancrer l'action (permet Undo correct sur petits drags)
     pushHistoryFromCurrentProject(true);
     preActionIndexRef.current = historyIndexRef.current;
   }
@@ -165,15 +163,15 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
   function endUserAction(changed: boolean) {
     if (!actionOpenRef.current) return;
     if (changed) {
-      // Snapshot final (déduplication normale)
       pushHistoryFromCurrentProject(false);
     } else {
-      // Pas de changement: retirer le snapshot forcé pour ne pas polluer l'historique
+      // No change: remove forced snapshot if no change to avoid polluting history
+      // Adjust current index
       if (preActionIndexRef.current !== null) {
         const idx = preActionIndexRef.current;
         if (idx >= 0 && idx < historyRef.current.length) {
           historyRef.current.splice(idx, 1);
-          // Réajuste l'index courant
+          // Adjusts current index
           historyIndexRef.current = Math.min(idx - 1, historyRef.current.length - 1);
         }
       }
@@ -425,7 +423,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
 
     a.remove(); b.remove();
 
-    // Normalise le résultat (compound ou path) pour qu'il soit détecté + exportable
+    // Normalize the result (compound or path) so it's detected + exportable
     const newId = genId();
     result.data = {
       id: newId,
@@ -434,9 +432,9 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     };
     result.fillColor = new paper.Color(result.data.fillColor);
 
-    // Assure pas de winding bizarre (Paper gère déjà, mais on force clock wise outer)
+    // Ensure no weird winding (Paper already manages, but we force clockwise outer)
     if (result instanceof paper.CompoundPath) {
-      // Tri enfants pour que le plus grand contour (aire absolue max) soit premier
+      // Tri children so the largest contour (max absolute area) is first
       result.children.sort((c1: any, c2: any) => Math.abs(c2.area) - Math.abs(c1.area));
     }
 
@@ -446,10 +444,10 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     endUserAction(true);
   }
 
-  // Remplace entièrement getNormalizedShapePaths pour corriger:
-  // - Exclusion (XOR) : toutes les régions disjointes doivent être conservées (avant on perdait la moitié)
-  // - Soustraction : les trous internes doivent être ignorés
-  // - Un seul 'M' par path (une région = un path), jamais de multi-M
+  // Replace getNormalizedShapePaths entirely to fix:
+  // - Exclusion (XOR): all disjoint regions must be kept (previously half were lost)
+  // - Subtraction: internal holes must be ignored
+  // - Only one 'M' per path (one region = one path), never multi-M
   function getNormalizedShapePaths() {
     const main = findMainLayer();
     if (!main) return { viewBox: { top: 0, left: 0, width: 0, height: 0 }, paths: [] as any[] };
@@ -460,7 +458,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       return { viewBox: { top: 0, left: 0, width: 0, height: 0 }, paths: [] };
     }
 
-    // BBox globale
+    // Global bounding box
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     shapeItems.forEach(it => {
       const b = it.bounds;
@@ -478,9 +476,9 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       if (!node) return;
       let d = (node.getAttribute('d') || '').trim();
       if (!d) return;
-      // Assure fermeture
+      // Ensure closure
       if (!/[zZ]$/.test(d)) d += ' Z';
-      // Évite multi-M dans le même path: chaque node ici = une seule sous-forme
+      // Avoid multi-M in the same path: each node here = only one sub-shape
       paths.push({ d, fill: { color } });
     }
 
@@ -493,8 +491,8 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     }
 
     function isHole(candidate: any, siblings: any[]) {
-      // Un trou est contenu DANS un autre path (centre à l'intérieur) et ne doit pas être exporté.
-      // Pour XOR (exclusion) les régions disjointes ne sont pas contenues -> gardées.
+      // A hole is contained INSIDE another path (center inside) and should not be exported.
+      // For XOR (exclusion) disjoint regions are not contained -> kept.
       const center = candidate.bounds.center;
       return siblings.some(s => s !== candidate && s.contains(center));
     }
@@ -504,7 +502,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
 
       if (it instanceof paper.CompoundPath) {
         const children = it.children.slice();
-        // On conserve toutes les régions dont le centre n'est pas contenu dans une autre (donc pas des trous)
+        // Keep all regions whose center is not contained in another (so not holes)
         children.forEach(child => {
           if (isHole(child, children)) return; // ignorer trou
           exportSinglePath(child, color);

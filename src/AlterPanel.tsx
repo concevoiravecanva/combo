@@ -36,12 +36,12 @@ const AlterPanel: React.FC<AlterPanelProps> = ({ selectedShapes }) => {
   return (
     <div style={{ padding: '12px' }}>
       <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600 }}>
-        {t('Modifier les formes')}
+        Modify shapes
       </h3>
       
       <div style={{ marginBottom: '12px' }}>
         <p style={{ fontSize: '12px', color: '#666', margin: '0 0 8px 0' }}>
-          {t(`Sélectionnées: ${selectedShapes.length}`)}
+          Selected: {selectedShapes.length}
         </p>
         
         {selectedShapes.length > 0 && (
@@ -73,14 +73,14 @@ const AlterPanel: React.FC<AlterPanelProps> = ({ selectedShapes }) => {
                 onClick={() => handleConvertToBezier('points')}
                 style={{ fontSize: '11px', padding: '6px 8px' }}
               >
-                {t('Convertir en Bézier (points)')}
+                {t('Convert to Bezier (points)')}
               </Button>
               <Button
                 variant="primary"
                 onClick={() => handleConvertToBezier('curves')}
                 style={{ fontSize: '11px', padding: '6px 8px' }}
               >
-                {t('Convertir en Bézier (courbes)')}
+                {t('Convert to Bezier (curves)')}
               </Button>
             </>
           )}
@@ -92,21 +92,21 @@ const AlterPanel: React.FC<AlterPanelProps> = ({ selectedShapes }) => {
                 onClick={handleAddBezierPoint}
                 style={{ fontSize: '11px', padding: '6px 8px' }}
               >
-                {t('Ajouter un point')}
+                {t('Add point')}
               </Button>
               <Button
                 variant="primary"
                 onClick={handleAddBezierCurve}
                 style={{ fontSize: '11px', padding: '6px 8px' }}
               >
-                {t('Ajouter une courbe')}
+                {t('Add curve')}
               </Button>
               <Button
                 variant="secondary"
                 onClick={handleUndo}
                 style={{ fontSize: '11px', padding: '6px 8px' }}
               >
-                {t('Annuler')}
+                {t('Undo')}
               </Button>
             </>
           )}
@@ -115,7 +115,7 @@ const AlterPanel: React.FC<AlterPanelProps> = ({ selectedShapes }) => {
 
       {selectedShapes.length !== 1 && (
         <p style={{ fontSize: '11px', color: '#999', fontStyle: 'italic' }}>
-          {t('Sélectionnez une forme pour la modifier')}
+          {t('Select a single shape to modify it')}
         </p>
       )}
     </div>

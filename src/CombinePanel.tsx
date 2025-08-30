@@ -30,12 +30,12 @@ const CombinePanel: React.FC<CombinePanelProps> = ({
   return (
     <div style={{ padding: '12px' }}>
       <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600 }}>
-        {t('Combiner les formes')}
+        {t('Combine shapes')}
       </h3>
       
       <div style={{ marginBottom: '12px' }}>
         <p style={{ fontSize: '12px', color: '#666', margin: '0 0 8px 0' }}>
-          {t(`Sélectionnées: ${selectedShapes.length}/2`)}
+          {t(`Selected: ${selectedShapes.length}/2`)}
         </p>
         
         {selectedShapes.length > 0 && (
@@ -63,7 +63,7 @@ const CombinePanel: React.FC<CombinePanelProps> = ({
           disabled={selectedShapes.length === 0}
           style={{ fontSize: '11px', padding: '4px 8px' }}
         >
-          {t('Tout désélectionner')}
+          {t('Deselect all')}
         </Button>
       </div>
 
@@ -74,28 +74,28 @@ const CombinePanel: React.FC<CombinePanelProps> = ({
             onClick={() => handleCombine('unite')}
             style={{ fontSize: '11px', padding: '6px 8px' }}
           >
-            {t('Unir')}
+            {t('Unite')}
           </Button>
           <Button
             variant="primary"
             onClick={() => handleCombine('subtract')}
             style={{ fontSize: '11px', padding: '6px 8px' }}
           >
-            {t('Soustraire')}
+            {t('Subtract')}
           </Button>
           <Button
             variant="primary"
             onClick={() => handleCombine('intersect')}
             style={{ fontSize: '11px', padding: '6px 8px' }}
           >
-            {t('Intersection')}
+            {t('Intersect')}
           </Button>
         </div>
       )}
 
       {selectedShapes.length < 2 && (
         <p style={{ fontSize: '11px', color: '#999', fontStyle: 'italic' }}>
-          {t('Sélectionnez au moins 2 formes pour les combiner')}
+          {t('Select at least 2 shapes to combine them')}
         </p>
       )}
     </div>

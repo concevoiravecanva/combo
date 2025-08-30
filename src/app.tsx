@@ -17,19 +17,19 @@ import {
   ArrowUp,
   ArrowDown
 } from 'lucide-react';
-import { addElementAtPoint } from '@canva/design'; // <— AJOUT
+import { addElementAtPoint } from '@canva/design'; // Added import
 
 type CombineOp = 'union' | 'subtract' | 'intersect' | 'exclude';
 
 const SHAPES = [
-  { key: 'circle', label: 'Cercle', Icon: IconCircle },
-  { key: 'square', label: 'Carré', Icon: IconSquare },
+  { key: 'circle', label: 'Circle', Icon: IconCircle },
+  { key: 'square', label: 'Square', Icon: IconSquare },
   { key: 'triangle', label: 'Triangle', Icon: IconTriangle },
-  { key: 'diamond', label: 'Losange', Icon: IconDiamond },
-  { key: 'pentagon', label: 'Pentagone', Icon: IconPentagon },
-  { key: 'hexagon', label: 'Hexagone', Icon: IconHexagon },
-  { key: 'heart', label: 'Cœur', Icon: IconHeart },
-  { key: 'star', label: 'Étoile', Icon: IconStar }
+  { key: 'diamond', label: 'Diamond', Icon: IconDiamond },
+  { key: 'pentagon', label: 'Pentagon', Icon: IconPentagon },
+  { key: 'hexagon', label: 'Hexagon', Icon: IconHexagon },
+  { key: 'heart', label: 'Heart', Icon: IconHeart },
+  { key: 'star', label: 'Star', Icon: IconStar }
 ];
 
 export default function App() {
@@ -39,9 +39,9 @@ export default function App() {
   const [pushing, setPushing] = useState(false);
   const [history, setHistory] = useState<ShapeData[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  // const [enlargeMode, setEnlargeMode] = useState(false);  // SUPPRIMÉ
+  // const [enlargeMode, setEnlargeMode] = useState(false); // removed
   const [handlesVisible, setHandlesVisible] = useState(true);
-  const [canvaReady, setCanvaReady] = useState(false);
+  // removed canvaReady state (unused after removal of waiting message)
 
   function refreshShapes(pushHistory = true) {
     const list = canvasRef.current?.getShapesList?.() || [];
@@ -110,20 +110,18 @@ export default function App() {
     if (pushing || shapes.length === 0) return;
     setPushing(true);
     try {
-      // Récupération paths normalisés
       const norm = (canvasRef.current as any)?.getNormalizedShapePaths?.();
       if (!norm?.paths?.length) {
-        console.warn('Aucun path à envoyer');
+        console.warn('No paths to send');
         return;
       }
 
-      // Si >30 paths on fusionne en une image (simpliste)
       if (norm.paths.length > 30) {
         const svg = canvasRef.current?.exportSVG?.();
         if (!svg) return;
         const cleaned = svg
           .replace(/<\?xml.*?\?>/g, '')
-            .replace(/<!DOCTYPE[\s\S]*?>/g, '')
+          .replace(/<!DOCTYPE[\s\S]*?>/g, '')
           .trim();
         const blob = new Blob([cleaned], { type: 'image/svg+xml' });
         const dataUrl = await fileToDataURL(blob);
@@ -139,18 +137,17 @@ export default function App() {
         return;
       }
 
-      // Ajout en tant que shape vectoriel
       await addElementAtPoint({
         type: 'shape',
         top: 60,
         left: 60,
         width: norm.viewBox.width,
         height: norm.viewBox.height,
-        viewBox: norm.viewBox, // {top:0,left:0,width,height}
+        viewBox: norm.viewBox,
         paths: norm.paths
       });
     } catch (e) {
-      console.error('Insertion Canva échouée', e);
+      console.error('Canva insertion failed', e);
     } finally {
       setPushing(false);
     }
@@ -196,14 +193,14 @@ export default function App() {
           margin: '0 auto',
           display: 'flex',
           flexDirection: 'column',
-            gap: 12,
+          gap: 12,
           overflowY: 'auto',
           overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
           paddingRight: 4
         }}
       >
-        {/* Palette */}
+        {/* Shape palette */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
           {SHAPES.map(s => (
             <button
@@ -217,28 +214,30 @@ export default function App() {
           ))}
         </div>
 
-        {/* Combinaisons */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: 10,
-          width: '100%'
-        }}>
+        {/* Boolean combinations */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 10,
+            width: '100%'
+          }}
+        >
           <button disabled={!canCombine()} onClick={() => handleCombine('union')} style={comboBtnStyle(!canCombine())}>
             Union
           </button>
           <button disabled={!canCombine()} onClick={() => handleCombine('subtract')} style={comboBtnStyle(!canCombine())}>
-            Soustraction
+            Subtract
           </button>
           <button disabled={!canCombine()} onClick={() => handleCombine('intersect')} style={comboBtnStyle(!canCombine())}>
-            Intersection
+            Intersect
           </button>
-            <button disabled={!canCombine()} onClick={() => handleCombine('exclude')} style={comboBtnStyle(!canCombine())}>
-            Exclusion
+          <button disabled={!canCombine()} onClick={() => handleCombine('exclude')} style={comboBtnStyle(!canCombine())}>
+            Exclude
           </button>
         </div>
 
-        {/* Canvas */}
+        {/* Canvas container */}
         <div
           style={{
             border: '1px solid #ccc',
@@ -263,7 +262,7 @@ export default function App() {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
             onClick={handleClear}
-            title="Vider"
+            title="Clear"
             style={iconBtnStyle(false)}
           >
             <Trash2 size={18} />
@@ -271,7 +270,7 @@ export default function App() {
           <button
             onClick={handlePushToCanva}
             disabled={pushing || shapes.length === 0}
-            title="Ajouter à Canva"
+            title="Add to Canva"
             style={iconBtnStyle(pushing || shapes.length === 0)}
           >
             <Upload size={18} />
@@ -284,19 +283,18 @@ export default function App() {
           >
             <RotateCcw size={18} />
           </button>
-          {/* Boutons de redimensionnement rapides SUPPRIMÉS */}
           <button
             onClick={toggleHandles}
-            title={handlesVisible ? 'Masquer points Bézier' : 'Afficher points Bézier'}
+            title={handlesVisible ? 'Hide Bezier handles' : 'Show Bezier handles'}
             style={iconBtnStyle(false)}
           >
             {handlesVisible ? <Eye size={18} /> : <EyeOff size={18} />}
           </button>
         </div>
 
-        {/* Calques */}
+        {/* Layers */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ fontWeight: 600, fontSize: 13 }}>Calques</div>
+          <div style={{ fontWeight: 600, fontSize: 13 }}>Layers</div>
           <div
             style={{
               display: 'flex',
@@ -327,7 +325,7 @@ export default function App() {
                     transition: 'background .15s, border-color .15s'
                   }}
                 >
-                  {/* Sélecteur de couleur direct */}
+                  {/* Direct color selector */}
                   <div
                     style={{
                       position: 'relative',
@@ -340,7 +338,7 @@ export default function App() {
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      // déclenche l'input caché
+                      // Trigger hidden color input
                       const inp = document.getElementById(`clr-${s.id}`) as HTMLInputElement | null;
                       inp?.click();
                     }}
@@ -373,7 +371,7 @@ export default function App() {
                         canvasRef.current?.moveLayer?.(s.id, 'up');
                         refreshShapes(false);
                       }}
-                      title="Monter"
+                      title="Move up"
                       style={layerOrderBtnStyle}
                     >
                       <ArrowUp size={14} />
@@ -384,7 +382,7 @@ export default function App() {
                         canvasRef.current?.moveLayer?.(s.id, 'down');
                         refreshShapes(false);
                       }}
-                      title="Descendre"
+                      title="Move down"
                       style={layerOrderBtnStyle}
                     >
                       <ArrowDown size={14} />
@@ -395,7 +393,7 @@ export default function App() {
                         canvasRef.current?.scaleShapes?.([s.id], 1.1);
                         refreshShapes(false);
                       }}
-                      title="Agrandir 10%"
+                      title="Scale +10%"
                       style={layerOrderBtnStyle}
                     >
                       +
@@ -406,7 +404,7 @@ export default function App() {
                         canvasRef.current?.scaleShapes?.([s.id], 0.9);
                         refreshShapes(false);
                       }}
-                      title="Rétrécir 10%"
+                      title="Scale -10%"
                       style={layerOrderBtnStyle}
                     >
                       –
@@ -420,17 +418,17 @@ export default function App() {
                       refreshShapes();
                     }}
                     style={deleteBtnStyle}
-                    title="Supprimer"
+                    title="Delete"
                   >
                     ✕
                   </button>
                 </div>
               );
             })}
-            {shapes.length === 0 && <div style={{ fontSize: 11, color: '#777' }}>Aucune forme</div>}
+            {shapes.length === 0 && <div style={{ fontSize: 11, color: '#777' }}>No shapes</div>}
           </div>
         </div>
-        {!canvaReady && <div style={{fontSize:11,color:'#777'}}>En attente de Canva...</div>}
+        {/* Removed "Waiting for Canva..." */}
       </div>
     </div>
   );
