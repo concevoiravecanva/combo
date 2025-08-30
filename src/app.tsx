@@ -236,13 +236,13 @@ export default function App() {
         style={{
           width: '100%',
           maxWidth: 360,
-          height: '100%',
+          height: '100vh',           // <--- Change from '100%' to '100vh'
           margin: '0 auto',
           display: 'flex',
           flexDirection: 'column',
           gap: 12,
-          overflowY: 'auto',    // Enable vertical scrolling only
-          overflowX: 'hidden',  // Disable horizontal scrolling
+          overflowY: 'scroll',       // <--- Use 'scroll' for always visible scrollbar
+          overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
           paddingRight: 4
         }}
@@ -485,7 +485,8 @@ export default function App() {
             background: '#fafafa',
             fontSize: 12,
             color: '#444',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            maxHeight: 220, // Limit height for scroll
           }}
         >
           <button
@@ -496,7 +497,7 @@ export default function App() {
               all: 'unset',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'flex-start', // Remove space-between so "+" is not pushed to edge
+              justifyContent: 'flex-start',
               width: '100%',
               cursor: 'pointer',
               padding: '8px 10px',
@@ -506,39 +507,59 @@ export default function App() {
             title="Toggle help panel"
           >
             <span>Help / Shortcuts</span>
-            {/* Removed the "+" / "−" icon */}
           </button>
           {helpOpen && (
-            <div style={{ padding: '8px 12px', lineHeight: 1.4 }}>
-              <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>Shortcuts</div>
-              <ul style={{ margin: '0 0 8px', paddingLeft: 16 }}>
-                <li>Enter: Push shapes to Canva</li>
-                <li>Delete / Backspace: Delete selection</li>
-                <li>Esc: Clear selection</li>
-                <li>1–8: Add palette shape</li>
-                <li>Click / Shift+Click: Select / multi-select</li>
-                <li>Arrow keys: Nudge (Shift = 10px)</li>
-                <li>/: Scale +10% | -: Scale -10%</li>
-                <li>D: Duplicate selection</li>
-                <li>[ / ]: Move layer down / up</li>
-                <li>Cmd/Ctrl+Z: Undo</li>
-              </ul>
-              <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>Buttons</div>
-              <ul style={{ margin: 0, paddingLeft: 16 }}>
-                <li>Shape palette: Add shape</li>
-                <li>Union / Subtract / Intersect / Exclude: Boolean ops</li>
-                <li>Trash: Clear canvas</li>
-                <li>Upload: Push to Canva</li>
-                <li>Undo: Revert last change</li>
-                <li>Eye: Toggle Bezier handles</li>
-                <li>Layer list:
+            <div
+              style={{
+                padding: '8px 12px',
+                lineHeight: 1.4,
+                maxHeight: 180, // Height for scrollable content
+                overflowY: 'auto'
+              }}
+            >
+              <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>How the app works</div>
+              <p style={{ margin: '0 0 10px 0' }}>
+                <b>Combo</b> lets you create and edit vector shapes, combine them using boolean operations, and send your design to Canva.
+                <br /><br />
+                <b>How to use:</b>
+                <ul style={{ margin: '8px 0 10px 0', paddingLeft: 16 }}>
+                  <li><b>Add shapes:</b> Use the shape palette at the top to add new shapes to the canvas.</li>
+                  <li><b>Select shapes:</b> Click a shape in the canvas or in the layers panel to select it. Hold <b>Shift</b> to select multiple shapes.</li>
+                  <li><b>Combine shapes:</b> Select two shapes and use the Union, Subtract, Intersect, or Exclude buttons to combine them.</li>
+                  <li><b>Edit layers:</b> Use the layers panel to change color, reorder, scale, or delete shapes.</li>
+                  <li><b>Bezier handles:</b> Toggle Bezier handles with the eye button to adjust curves.</li>
+                  <li><b>Undo:</b> Use the Undo button to revert your last change.</li>
+                  <li><b>Clear:</b> Use the Trash button to remove all shapes from the canvas.</li>
+                  <li><b>Push to Canva:</b> Use the Upload button or press <b>Enter</b> to send your design to Canva.</li>
+                </ul>
+              </p>
+              <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>Button explanations</div>
+              <ul style={{ margin: '0 0 10px 0', paddingLeft: 16 }}>
+                <li><b>Shape palette</b>: Add a new shape to the canvas.</li>
+                <li><b>Union / Subtract / Intersect / Exclude</b>: Combine two selected shapes using boolean operations.</li>
+                <li><b>Trash</b>: Clears all shapes from the canvas.</li>
+                <li><b>Upload</b>: Pushes your current design to Canva.</li>
+                <li><b>Undo</b>: Reverts the last change you made.</li>
+                <li><b>Eye</b>: Shows or hides Bezier handles for editing curves.</li>
+                <li><b>Layers panel</b>: 
                   <ul style={{ margin: '4px 0 0', paddingLeft: 14 }}>
-                    <li>Color dot: Change fill</li>
-                    <li>Up / Down: Reorder</li>
-                    <li>+ / –: Scale ±10%</li>
-                    <li>✕: Delete</li>
+                    <li><b>Color dot</b>: Change the fill color of a shape.</li>
+                    <li><b>Up / Down arrows</b>: Move the layer up or down in the stack.</li>
+                    <li><b>+</b> / <b>–</b>: Scale the shape up or down by 10%.</li>
+                    <li><b>✕</b>: Delete the shape from the canvas.</li>
                   </ul>
                 </li>
+              </ul>
+              <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>Shortcuts</div>
+              <ul style={{ margin: '0 0 8px', paddingLeft: 16 }}>
+                <li><b>Enter</b>: Push shapes to Canva</li>
+                <li><b>Delete / Backspace</b>: Delete selection</li>
+                <li><b>Esc</b>: Clear selection</li>
+                <li><b>1–8</b>: Add palette shape</li>
+                <li><b>Click / Shift+Click</b>: Select / multi-select</li>
+                <li><b>/</b>: Scale +10% &nbsp;|&nbsp; <b>-</b>: Scale -10%</li>
+                <li><b>[ / ]</b>: Move layer down / up</li>
+                <li><b>Cmd/Ctrl+Z</b>: Undo</li>
               </ul>
             </div>
           )}
