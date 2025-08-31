@@ -359,7 +359,19 @@ export default function App() {
               return (
                 <div
                   key={s.id}
-                  onClick={() => canvasRef.current?.selectShapes?.([s.id])}
+                  onClick={(e) => {
+                    if (e.shiftKey) {
+                      // Multi-sélection avec Shift
+                      const alreadySelected = selected.map(sel => sel.id);
+                      let nextIds = alreadySelected.includes(s.id)
+                        ? alreadySelected.filter(id => id !== s.id)
+                        : [...alreadySelected, s.id];
+                      canvasRef.current?.selectShapes?.(nextIds);
+                    } else {
+                      // Sélection simple
+                      canvasRef.current?.selectShapes?.([s.id]);
+                    }
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
