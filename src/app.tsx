@@ -561,6 +561,7 @@ export default function App() {
                 <li><b>[ / ]</b>: Move layer down / up</li>
                 <li><b>Cmd/Ctrl+Z</b>: Undo</li>
               </ul>
+              <div style={{ height: 12 }} /> {/* Ligne vide pour le padding bas */}
             </div>
           )}
         </div>
