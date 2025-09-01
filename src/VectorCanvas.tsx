@@ -406,11 +406,42 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
   }
 
   // PATCH: assure que le résultat des opérations booléennes garde un id
+  // Helper: clone a child (Path) into a new independent Path with same geometry & handles
+  function cloneChildPath(child: any, fillColor: string, id: string) {
+    const np = new paper.Path();
+    for (let si = 0; si < child.segments.length; si++) {
+      const s = child.segments[si];
+      np.add(new paper.Segment(
+        s.point.clone(),
+        s.handleIn ? s.handleIn.clone() : null,
+        s.handleOut ? s.handleOut.clone() : null
+      ));
+    }
+    np.closed = !!child.closed;
+    try { np.fillColor = new paper.Color(fillColor); } catch {}
+    try { if (child.strokeColor) np.strokeColor = child.strokeColor.clone(); } catch {}
+    if (child.strokeWidth != null) np.strokeWidth = child.strokeWidth;
+    np.data = {
+      id,
+      type: 'shape',
+      fillColor,
+      size: Math.max(np.bounds.width, np.bounds.height)
+    };
+    return np;
+  }
+
+  // Detect “hole” (a child whose center lies inside another sibling) – we skip exporting holes except for EXCLUDE (we keep all regions)
+  function isHole(child: any, siblings: any[]) {
+    const center = child.bounds.center;
+    return siblings.some(s => s !== child && s.contains(center));
+  }
+
   function combineShapes(idA: string, idB: string, op: 'union' | 'subtract' | 'intersect' | 'exclude') {
     startUserAction();
     const a = findShapeById(idA);
     const b = findShapeById(idB);
-    if (!a || !b) return;
+    if (!a || !b) { endUserAction(false); return; }
+
     let result: any;
     try {
       switch (op) {
@@ -419,28 +450,89 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
         case 'intersect': result = a.intersect(b); break;
         case 'exclude':   result = a.exclude(b); break;
       }
-    } catch { return; }
-    if (!result) return;
+    } catch {
+      endUserAction(false);
+      return;
+    }
+    if (!result) { endUserAction(false); return; }
 
-    a.remove(); b.remove();
+    const fillColor = a.data?.fillColor || b.data?.fillColor || '#ff0000';
 
-    // Normalize the result (compound or path) so it's detected + exportable
-    const newId = genId();
-    result.data = {
-      id: newId,
-      type: 'shape',
-      fillColor: a.data?.fillColor || b.data?.fillColor || '#ff0000'
-    };
-    result.fillColor = new paper.Color(result.data.fillColor);
+    const main = findMainLayer();
+    const handlesLayer = findHandlesLayer();
+    if (!main || !handlesLayer) { endUserAction(false); return; }
 
-    // Ensure no weird winding (Paper already manages, but we force clockwise outer)
-    if (result instanceof paper.CompoundPath) {
-      // Tri children so the largest contour (max absolute area) is first
-      result.children.sort((c1: any, c2: any) => Math.abs(c2.area) - Math.abs(c1.area));
+    // 1. Supprime d'abord les handles des deux formes sources AVANT de retirer les formes
+    if (a.data?.id) removeHandlesForPath(a.data.id);
+    if (b.data?.id) removeHandlesForPath(b.data.id);
+
+    // 2. Retire les deux formes sources
+    try { a.remove(); } catch {}
+    try { b.remove(); } catch {}
+
+    const createdIds: string[] = [];
+    const baseId = 'cmb_' + Math.random().toString(36).slice(2, 9);
+
+    // Helpers existants réutilisés (cloneChildPath / isHole) — ne pas supprimer
+    if (result instanceof paper.Path) {
+      try { result.fillColor = new paper.Color(fillColor); } catch {}
+      result.data = {
+        id: baseId,
+        type: 'shape',
+        fillColor,
+        size: Math.max(result.bounds.width, result.bounds.height)
+      };
+      main.addChild(result);
+      createdIds.push(baseId);
+    } else if (result instanceof paper.CompoundPath) {
+      const children = result.children.slice();
+      let visibleIdx = 0;
+      children.forEach((child: any) => {
+        if (!child.segments) return;
+        // Pour exclude on garde toutes les régions; pour les autres on ignore les trous
+        if (op !== 'exclude' && isHole(child, children)) return;
+        const childId = baseId + '_p' + visibleIdx++;
+        const np = cloneChildPath(child, fillColor, childId);
+        main.addChild(np);
+        createdIds.push(childId);
+      });
+      try { result.remove(); } catch {}
+    } else if (result.children && result.children.length) {
+      // Fallback group-like
+      let idx = 0;
+      result.children.forEach((ch: any) => {
+        if (ch.segments) {
+          const childId = baseId + '_g' + idx++;
+          const np = cloneChildPath(ch, fillColor, childId);
+          main.addChild(np);
+          createdIds.push(childId);
+        }
+      });
+      try { result.remove(); } catch {}
+    } else {
+      // Rien d'exploitable
+      endUserAction(false);
+      return;
     }
 
-    selectShapes([newId]);
+    if (!createdIds.length) {
+      // Nettoie les handles orphelins éventuels
+      purgeOrphanHandles();
+      paper.view.update();
+      endUserAction(false);
+      return;
+    }
+
+    // 3. Regénère complètement les handles (plus sûr: supprime les anciens flottants)
     regenerateAllHandles();
+    // Par sécurité, purge tout handle orphelin restant (au cas où)
+    purgeOrphanHandles();
+    handlesLayer.bringToFront();
+
+    // 4. Sélectionne les nouvelles formes
+    selectShapes(createdIds);
+
+    paper.view.update();
     props.onShapesChange?.();
     endUserAction(true);
   }
