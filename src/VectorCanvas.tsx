@@ -166,13 +166,10 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     if (changed) {
       pushHistoryFromCurrentProject(false);
     } else {
-      // No change: remove forced snapshot if no change to avoid polluting history
-      // Adjust current index
       if (preActionIndexRef.current !== null) {
         const idx = preActionIndexRef.current;
         if (idx >= 0 && idx < historyRef.current.length) {
           historyRef.current.splice(idx, 1);
-          // Adjusts current index
           historyIndexRef.current = Math.min(idx - 1, historyRef.current.length - 1);
         }
       }
@@ -202,7 +199,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
 
   function undo(): boolean {
     if (actionOpenRef.current) {
-      // Ferme proprement une action incomplète
       endUserAction(false);
     }
     if (historyIndexRef.current > 0) {
@@ -258,11 +254,10 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
         item = new paper.Path.RegularPolygon(center, 6, s / 2);
         break;
       case "heart": {
-        const w = s * 0.55; // Ajuste la largeur
-        const h = s * 0.55; // Ajuste la hauteur
+        const w = s * 0.55; 
+        const h = s * 0.55; 
         const p = new paper.Path();
 
-        // Formule paramétrique pour un cœur lisse et symétrique
         for (let t = 0; t < Math.PI * 2; t += (Math.PI * 2) / 100) {
           const x = w * 16 * Math.pow(Math.sin(t), 3) / 16;
           const y = -h * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) / 16;
@@ -400,13 +395,11 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     endUserAction(true);
   }
 
-  // UTIL: génère un id simple
   function genId() {
     return 'shp_' + Math.random().toString(36).slice(2, 9);
   }
 
-  // PATCH: assure que le résultat des opérations booléennes garde un id
-  // Helper: clone a child (Path) into a new independent Path with same geometry & handles
+
   function cloneChildPath(child: any, fillColor: string, id: string) {
     const np = new paper.Path();
     for (let si = 0; si < child.segments.length; si++) {
@@ -430,7 +423,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     return np;
   }
 
-  // Detect “hole” (a child whose center lies inside another sibling) – we skip exporting holes except for EXCLUDE (we keep all regions)
   function isHole(child: any, siblings: any[]) {
     const center = child.bounds.center;
     return siblings.some(s => s !== child && s.contains(center));
@@ -462,18 +454,15 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     const handlesLayer = findHandlesLayer();
     if (!main || !handlesLayer) { endUserAction(false); return; }
 
-    // 1. Supprime d'abord les handles des deux formes sources AVANT de retirer les formes
     if (a.data?.id) removeHandlesForPath(a.data.id);
     if (b.data?.id) removeHandlesForPath(b.data.id);
 
-    // 2. Retire les deux formes sources
     try { a.remove(); } catch {}
     try { b.remove(); } catch {}
 
     const createdIds: string[] = [];
     const baseId = 'cmb_' + Math.random().toString(36).slice(2, 9);
 
-    // Helpers existants réutilisés (cloneChildPath / isHole) — ne pas supprimer
     if (result instanceof paper.Path) {
       try { result.fillColor = new paper.Color(fillColor); } catch {}
       result.data = {
@@ -489,7 +478,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       let visibleIdx = 0;
       children.forEach((child: any) => {
         if (!child.segments) return;
-        // Pour exclude on garde toutes les régions; pour les autres on ignore les trous
         if (op !== 'exclude' && isHole(child, children)) return;
         const childId = baseId + '_p' + visibleIdx++;
         const np = cloneChildPath(child, fillColor, childId);
@@ -498,7 +486,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       });
       try { result.remove(); } catch {}
     } else if (result.children && result.children.length) {
-      // Fallback group-like
       let idx = 0;
       result.children.forEach((ch: any) => {
         if (ch.segments) {
@@ -510,26 +497,21 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       });
       try { result.remove(); } catch {}
     } else {
-      // Rien d'exploitable
       endUserAction(false);
       return;
     }
 
     if (!createdIds.length) {
-      // Nettoie les handles orphelins éventuels
       purgeOrphanHandles();
       paper.view.update();
       endUserAction(false);
       return;
     }
 
-    // 3. Regénère complètement les handles (plus sûr: supprime les anciens flottants)
     regenerateAllHandles();
-    // Par sécurité, purge tout handle orphelin restant (au cas où)
     purgeOrphanHandles();
     handlesLayer.bringToFront();
 
-    // 4. Sélectionne les nouvelles formes
     selectShapes(createdIds);
 
     paper.view.update();
@@ -537,10 +519,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     endUserAction(true);
   }
 
-  // Replace getNormalizedShapePaths entirely to fix:
-  // - Exclusion (XOR): all disjoint regions must be kept (previously half were lost)
-  // - Subtraction: internal holes must be ignored
-  // - Only one 'M' per path (one region = one path), never multi-M
   function getNormalizedShapePaths() {
     const main = findMainLayer();
     if (!main) return { viewBox: { top: 0, left: 0, width: 0, height: 0 }, paths: [] as any[] };
@@ -551,7 +529,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       return { viewBox: { top: 0, left: 0, width: 0, height: 0 }, paths: [] };
     }
 
-    // Global bounding box
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     shapeItems.forEach(it => {
       const b = it.bounds;
@@ -569,9 +546,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       if (!node) return;
       let d = (node.getAttribute('d') || '').trim();
       if (!d) return;
-      // Ensure closure
       if (!/[zZ]$/.test(d)) d += ' Z';
-      // Avoid multi-M in the same path: each node here = only one sub-shape
       paths.push({ d, fill: { color } });
     }
 
@@ -584,8 +559,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     }
 
     function isHole(candidate: any, siblings: any[]) {
-      // A hole is contained INSIDE another path (center inside) and should not be exported.
-      // For XOR (exclusion) disjoint regions are not contained -> kept.
       const center = candidate.bounds.center;
       return siblings.some(s => s !== candidate && s.contains(center));
     }
@@ -595,7 +568,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
 
       if (it instanceof paper.CompoundPath) {
         const children = it.children.slice();
-        // Keep all regions whose center is not contained in another (so not holes)
         children.forEach(child => {
           if (isHole(child, children)) return; // ignorer trou
           exportSinglePath(child, color);
@@ -644,7 +616,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     };
   }, []);
 
-  // Update view size when props change
   useEffect(() => {
     if (!paper.view) return;
     const w = props.width || 300;
@@ -670,7 +641,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     let draggedItemIds = new Set<string>();
     let somethingChanged = false;
 
-    // Pour création dynamique des poignées via ALT-drag
     let altPrimed = false;
     let initialDownPoint: paper.Point | null = null;
 
@@ -689,13 +659,11 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     tool.onMouseDown = (event: any) => {
       initialDownPoint = event.point.clone();
 
-      // Ouvre systématiquement une action (idempotent) pour garantir un snapshot avant tout drag (y compris points Bézier)
-      startUserAction(); // <<< AJOUT GLOBAL
+      startUserAction(); 
 
       const hitHandle = hitTestHandle(event.point);
 
       if (hitHandle?.item?.data) {
-        // (startUserAction supprimé ici)
         draggedHandle = hitHandle.item;
         draggedHandleType = draggedHandle.data.type;
         const pathId = draggedHandle.data.pathId;
@@ -728,7 +696,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       if (hit?.item) {
         const shapeItem = resolveShapeWithId(hit.item);
         if (shapeItem?.data?.id) {
-          // (startUserAction supprimé ici)
           if (shift) toggleSelectShape(shapeItem.data.id);
           else if (!selectedIdsRef.current.has(shapeItem.data.id)) selectShapes([shapeItem.data.id]);
           draggedItemIds = new Set(selectedIdsRef.current);
@@ -739,7 +706,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
         }
       }
 
-      // Si simple clic vide: on ferme immédiatement l'action sans snapshot après (car pas de changement)
       endUserAction(false);
       selectShapes([]);
       isDragging = false;
@@ -748,8 +714,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     tool.onMouseDrag = (event: any) => {
       if (!isDragging) return;
 
-      // Sécurité: si pour une raison quelconque l'action n'a pas été ouverte (hitTest raté),
-      // on la démarre juste avant la première mutation.
       if (!actionOpenRef.current) {
         startUserAction();
       }
@@ -823,26 +787,20 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     };
   }, []);
 
-  // expose rotateShape in the public ref type
   function rotateShape(id: string, angle: number) {
-    // find the actual item (works for nested children / compound paths)
     const item = (typeof findItemByDataId === 'function' ? findItemByDataId(id) : findShapeById(id));
     if (!item) return;
 
     const center = (item.bounds && item.bounds.center) ? item.bounds.center : (item.position || new paper.Point(0, 0));
 
     try {
-      // Prefer built-in rotate with center when available
       if (typeof item.rotate === 'function') {
-        // paper.js supports rotate(angle, center)
         try {
           item.rotate(angle, center);
         } catch {
-          // fallback: try rotate(angle) if second argument not supported
           item.rotate(angle);
         }
       } else if (item.segments) {
-        // best-effort fallback: rotate segment points around center
         const rad = (angle * Math.PI) / 180;
         const cos = Math.cos(rad);
         const sin = Math.sin(rad);
@@ -860,7 +818,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       console.warn('rotateShape failed', err);
     }
 
-    // update handles and notify host
     if (typeof regenerateAllHandles === 'function') regenerateAllHandles();
     props?.onShapesChange?.();
   }
@@ -894,7 +851,6 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
         height={props.height || 240}
         style={{ ...props.style, touchAction: "none", pointerEvents: "auto", cursor: "default" }}
       />
-      {/* Overlay liste + / - supprimé pour n'avoir les boutons que dans la zone Calques */}
     </>
   );
 });
@@ -955,7 +911,6 @@ function ensureSegmentHandleVisuals(path:any, segIdx:number){
   const handles = findHandlesLayer();
   if(!handles) return;
   const seg = path.segments[segIdx];
-  // recrée seulement ce segment (supprime d'abord)
   handles.children
     .filter((h:any)=>h.data?.pathId===path.data.id && h.data.segIdx===segIdx)
     .forEach((h:any)=>h.remove());
@@ -1000,7 +955,6 @@ function updateHandlesForSegment(path:any, segIdx:number){
       }
     });
 
-  // Créer manquants
   if(needIn){
     const hasIn = handles.children.some((h:any)=>h.data?.pathId===pathId && h.data.segIdx===segIdx && h.data.type==='handleIn');
     if(!hasIn){
@@ -1049,10 +1003,8 @@ function purgeOrphanHandles() {
     .forEach((h: any) => h.remove());
 }
 
-// Ajouter cette fonction helper avant qu'elle ne soit utilisée
 function resolveShapeWithId(item: any) {
   let current = item;
-  // Remonte l'arbre des parents jusqu'à trouver un élément avec un id
   while (current && (!current.data || !current.data.id) && current.parent) {
     current = current.parent;
   }

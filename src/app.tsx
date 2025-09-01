@@ -12,13 +12,13 @@ import {
   Trash2,
   Upload,
   RotateCcw,
-  RotateCw,      // <-- added
+  RotateCw,      
   Eye,
   EyeOff,
   ArrowUp,
   ArrowDown
 } from 'lucide-react';
-import { addElementAtPoint } from '@canva/design'; // Added import
+import { addElementAtPoint } from '@canva/design'; 
 
 type CombineOp = 'union' | 'subtract' | 'intersect' | 'exclude';
 
@@ -40,9 +40,8 @@ export default function App() {
   const [pushing, setPushing] = useState(false);
   const [history, setHistory] = useState<ShapeData[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  // const [enlargeMode, setEnlargeMode] = useState(false); // removed
   const [handlesVisible, setHandlesVisible] = useState(true);
-  const [helpOpen, setHelpOpen] = useState(false); // Add this state
+  const [helpOpen, setHelpOpen] = useState(false); 
 
   function refreshShapes(pushHistory = true) {
     const list = canvasRef.current?.getShapesList?.() || [];
@@ -169,7 +168,6 @@ export default function App() {
     canvasRef.current?.setHandlesVisibility?.(next);
   }
 
-  // Keyboard shortcuts handler
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.repeat) return;
@@ -183,7 +181,7 @@ export default function App() {
         const idx = parseInt(e.key, 10) - 1;
         if (SHAPES[idx]) handleAddShape(SHAPES[idx].key);
       } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        // Nudge selection
+
         if (selected.length > 0 && canvasRef.current) {
           const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
           const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
@@ -194,7 +192,7 @@ export default function App() {
           refreshShapes(false);
         }
       } else if (e.key === '/' || e.key === '-') {
-        // Scale selection
+    
         if (selected.length > 0 && canvasRef.current) {
           const scale = e.key === '/' ? 1.1 : 0.9;
           selected.forEach(s => {
@@ -203,7 +201,7 @@ export default function App() {
           refreshShapes(false);
         }
       } else if (e.key === '[') {
-        // Move layer down
+        
         if (selected.length > 0 && canvasRef.current) {
           selected.forEach(s => {
             canvasRef.current?.moveLayer?.(s.id, 'down');
@@ -218,7 +216,7 @@ export default function App() {
 
   useEffect(() => {
     refreshShapes();
-    // eslint-disable-next-line
+    
   }, []);
 
   return (
@@ -237,12 +235,12 @@ export default function App() {
         style={{
           width: '100%',
           maxWidth: 360,
-          height: '100vh',           // <--- Change from '100%' to '100vh'
+          height: '100vh',           
           margin: '0 auto',
           display: 'flex',
           flexDirection: 'column',
           gap: 12,
-          overflowY: 'scroll',       // <--- Use 'scroll' for always visible scrollbar
+          overflowY: 'scroll',       
           overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
           paddingRight: 4
@@ -396,7 +394,7 @@ export default function App() {
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Trigger hidden color input
+                      
                       const inp = document.getElementById(`clr-${s.id}`) as HTMLInputElement | null;
                       inp?.click();
                     }}
@@ -447,9 +445,9 @@ export default function App() {
                           canvasRef.current?.rotateShape?.(s.id, 10);
                           refreshShapes(false);
                         };
-                        // immediate rotate for click
+                        
                         rotateOnce();
-                        // start continuous rotation while pressed
+                        
                         const intervalId = window.setInterval(rotateOnce, 120);
                         const stop = () => {
                           clearInterval(intervalId);
@@ -460,7 +458,7 @@ export default function App() {
                         window.addEventListener('touchend', stop);
                       }}
                       onTouchStart={(e) => {
-                        // Mirror behavior for touch: rotate once immediately and start interval
+                        
                         e.stopPropagation();
                         const rotateOnce = () => {
                           canvasRef.current?.rotateShape?.(s.id, 10);
@@ -526,7 +524,7 @@ export default function App() {
             fontSize: 12,
             color: '#444',
             overflow: 'hidden',
-            maxHeight: 220, // Limit height for scroll
+            maxHeight: 220, 
           }}
         >
           <button
@@ -553,7 +551,7 @@ export default function App() {
               style={{
                 padding: '8px 12px',
                 lineHeight: 1.4,
-                maxHeight: 180, // Height for scrollable content
+                maxHeight: 180, 
                 overflowY: 'auto'
               }}
             >
@@ -601,7 +599,7 @@ export default function App() {
                 <li><b>[ / ]</b>: Move layer down / up</li>
                 <li><b>Cmd/Ctrl+Z</b>: Undo</li>
               </ul>
-              <div style={{ height: 12 }} /> {/* Ligne vide pour le padding bas */}
+              <div style={{ height: 12 }} /> 
             </div>
           )}
         </div>

@@ -1,6 +1,6 @@
 import { AppUiProvider } from "@canva/app-ui-kit";
 import { createRoot } from "react-dom/client";
-import App from "./app"; // ✅ import corrigé
+import App from "./app"; 
 import "@canva/app-ui-kit/styles.css";
 import { AppI18nProvider } from "@canva/app-i18n-kit";
 
