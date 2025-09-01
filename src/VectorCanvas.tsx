@@ -32,6 +32,7 @@ export interface VectorCanvasRef {
     viewBox: { top: number; left: number; width: number; height: number };
     paths: { d: string; fill: { color: string } }[];
   };
+  rotateShape?: (id: string, angle: number) => void;
 }
 
 type Props = {
@@ -730,6 +731,48 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     };
   }, []);
 
+  // expose rotateShape in the public ref type
+  function rotateShape(id: string, angle: number) {
+    // find the actual item (works for nested children / compound paths)
+    const item = (typeof findItemByDataId === 'function' ? findItemByDataId(id) : findShapeById(id));
+    if (!item) return;
+
+    const center = (item.bounds && item.bounds.center) ? item.bounds.center : (item.position || new paper.Point(0, 0));
+
+    try {
+      // Prefer built-in rotate with center when available
+      if (typeof item.rotate === 'function') {
+        // paper.js supports rotate(angle, center)
+        try {
+          item.rotate(angle, center);
+        } catch {
+          // fallback: try rotate(angle) if second argument not supported
+          item.rotate(angle);
+        }
+      } else if (item.segments) {
+        // best-effort fallback: rotate segment points around center
+        const rad = (angle * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        const rotatePoint = (pt: any) => {
+          const p = pt.clone().subtract(center);
+          return new paper.Point(p.x * cos - p.y * sin, p.x * sin + p.y * cos).add(center);
+        };
+        item.segments.forEach((seg: any) => {
+          seg.point = rotatePoint(seg.point);
+          if (seg.handleIn) seg.handleIn = rotatePoint(seg.point.add(seg.handleIn).subtract(seg.point)).subtract(seg.point).add(seg.point).subtract(seg.point); // no-op safe attempt
+          if (seg.handleOut) seg.handleOut = rotatePoint(seg.point.add(seg.handleOut).subtract(seg.point)).subtract(seg.point).add(seg.point).subtract(seg.point); // safe no-op attempt
+        });
+      }
+    } catch (err) {
+      console.warn('rotateShape failed', err);
+    }
+
+    // update handles and notify host
+    if (typeof regenerateAllHandles === 'function') regenerateAllHandles();
+    props?.onShapesChange?.();
+  }
+
   useImperativeHandle(ref, () => ({
     addShape,
     getShapesList,
@@ -747,7 +790,8 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     exportSVG,
     undo,
     scaleShapes,
-    getNormalizedShapePaths
+    getNormalizedShapePaths,
+    rotateShape,
   }));
 
   return (

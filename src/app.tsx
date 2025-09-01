@@ -12,6 +12,7 @@ import {
   Trash2,
   Upload,
   RotateCcw,
+  RotateCw,      // <-- added
   Eye,
   EyeOff,
   ArrowUp,
@@ -361,14 +362,12 @@ export default function App() {
                   key={s.id}
                   onClick={(e) => {
                     if (e.shiftKey) {
-                      // Multi-sélection avec Shift
                       const alreadySelected = selected.map(sel => sel.id);
                       let nextIds = alreadySelected.includes(s.id)
                         ? alreadySelected.filter(id => id !== s.id)
                         : [...alreadySelected, s.id];
                       canvasRef.current?.selectShapes?.(nextIds);
                     } else {
-                      // Sélection simple
                       canvasRef.current?.selectShapes?.([s.id]);
                     }
                   }}
@@ -425,44 +424,73 @@ export default function App() {
 
                   <div style={{ display: 'flex', gap: 2 }}>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        canvasRef.current?.moveLayer?.(s.id, 'up');
-                        refreshShapes(false);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'up'); refreshShapes(false); }}
                       title="Move up"
                       style={layerOrderBtnStyle}
                     >
                       <ArrowUp size={14} />
                     </button>
+
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        canvasRef.current?.moveLayer?.(s.id, 'down');
-                        refreshShapes(false);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'down'); refreshShapes(false); }}
                       title="Move down"
                       style={layerOrderBtnStyle}
                     >
                       <ArrowDown size={14} />
                     </button>
+
+                    {/* Rotate right - one click = 10deg, hold = continuous */}
                     <button
-                      onClick={(e) => {
+                      onMouseDown={(e) => {
                         e.stopPropagation();
-                        canvasRef.current?.scaleShapes?.([s.id], 1.1);
-                        refreshShapes(false);
+                        const rotateOnce = () => {
+                          canvasRef.current?.rotateShape?.(s.id, 10);
+                          refreshShapes(false);
+                        };
+                        // immediate rotate for click
+                        rotateOnce();
+                        // start continuous rotation while pressed
+                        const intervalId = window.setInterval(rotateOnce, 120);
+                        const stop = () => {
+                          clearInterval(intervalId);
+                          window.removeEventListener('mouseup', stop);
+                          window.removeEventListener('touchend', stop);
+                        };
+                        window.addEventListener('mouseup', stop);
+                        window.addEventListener('touchend', stop);
                       }}
+                      onTouchStart={(e) => {
+                        // Mirror behavior for touch: rotate once immediately and start interval
+                        e.stopPropagation();
+                        const rotateOnce = () => {
+                          canvasRef.current?.rotateShape?.(s.id, 10);
+                          refreshShapes(false);
+                        };
+                        rotateOnce();
+                        const intervalId = window.setInterval(rotateOnce, 120);
+                        const stop = () => {
+                          clearInterval(intervalId);
+                          window.removeEventListener('touchend', stop);
+                          window.removeEventListener('mouseup', stop);
+                        };
+                        window.addEventListener('touchend', stop);
+                        window.addEventListener('mouseup', stop);
+                      }}
+                      title="Rotate right"
+                      style={layerOrderBtnStyle}
+                    >
+                      <RotateCw size={14} />
+                    </button>
+
+                    <button
+                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 1.1); refreshShapes(false); }}
                       title="Scale +10%"
                       style={layerOrderBtnStyle}
                     >
                       +
                     </button>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        canvasRef.current?.scaleShapes?.([s.id], 0.9);
-                        refreshShapes(false);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 0.9); refreshShapes(false); }}
                       title="Scale -10%"
                       style={layerOrderBtnStyle}
                     >
