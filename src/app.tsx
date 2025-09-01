@@ -235,12 +235,13 @@ export default function App() {
         style={{
           width: '100%',
           maxWidth: 360,
-          height: '100vh',           
+          height: '100%',
           margin: '0 auto',
           display: 'flex',
           flexDirection: 'column',
           gap: 12,
-          overflowY: 'scroll',       
+          paddingBottom: 16,        // added
+          overflowY: 'auto',
           overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
           paddingRight: 4
