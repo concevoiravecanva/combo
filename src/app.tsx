@@ -42,6 +42,15 @@ export default function App() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [handlesVisible, setHandlesVisible] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false); 
+  const liveRef = useRef<HTMLDivElement|null>(null);
+
+  function announce(msg: string) {
+    if (!liveRef.current) return;
+    liveRef.current.textContent = '';
+    requestAnimationFrame(() => {
+      if (liveRef.current) liveRef.current.textContent = msg;
+    });
+  }
 
   function refreshShapes(pushHistory = true) {
     const list = canvasRef.current?.getShapesList?.() || [];
@@ -57,6 +66,11 @@ export default function App() {
 
   function handleSelectionChange(sel: ShapeData[]) {
     setSelected(sel);
+    announce(sel.length === 0
+      ? 'Aucune forme sélectionnée'
+      : sel.length === 1
+        ? '1 forme sélectionnée'
+        : sel.length + ' formes sélectionnées');
   }
 
   function handleAddShape(type: string) {
@@ -220,7 +234,9 @@ export default function App() {
   }, []);
 
   return (
-    <div
+    <main
+      role="main"
+      aria-label="Éditeur vectoriel"
       style={{
         width: '100%',
         height: '100%',
@@ -231,6 +247,23 @@ export default function App() {
         overflow: 'hidden'
       }}
     >
+      <a
+        href="#layers-panel"
+        style={{
+          position: 'absolute',
+          left: -9999,
+          top: 8,
+          background: '#0047ff',
+          color: '#fff',
+          padding: '6px 10px',
+          borderRadius: 4
+        }}
+        onFocus={(e) => { e.currentTarget.style.left = '8px'; }}
+        onBlur={(e) => { e.currentTarget.style.left = '-9999px'; }}
+      >
+        Aller à la liste des calques
+      </a>
+
       <div
         style={{
           width: '100%',
@@ -240,29 +273,34 @@ export default function App() {
           display: 'flex',
           flexDirection: 'column',
           gap: 12,
-          paddingBottom: 16,        // added
+          paddingBottom: 16,
           overflowY: 'auto',
           overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
           paddingRight: 4
         }}
       >
-        {/* Shape palette */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+        <div
+          role="group"
+          aria-label="Palette de formes"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}
+        >
           {SHAPES.map(s => (
             <button
               key={s.key}
+              type="button"
+              aria-label={`Ajouter ${s.label}`}
               onClick={() => handleAddShape(s.key)}
-              title={s.label}
               style={shapeBtnStyle}
             >
-              <s.Icon size={18} strokeWidth={1.8} />
+              <s.Icon size={18} strokeWidth={1.8} aria-hidden="true" />
             </button>
           ))}
         </div>
 
-        {/* Boolean combinations */}
         <div
+          role="group"
+          aria-label="Opérations booléennes"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(2, 1fr)',
@@ -270,30 +308,29 @@ export default function App() {
             width: '100%'
           }}
         >
-          <button disabled={!canCombine()} onClick={() => handleCombine('union')} style={comboBtnStyle(!canCombine())}>
+          <button type="button" aria-disabled={!canCombine()} disabled={!canCombine()} onClick={() => handleCombine('union')} style={comboBtnStyle(!canCombine())}>
             Union
           </button>
-          <button disabled={!canCombine()} onClick={() => handleCombine('subtract')} style={comboBtnStyle(!canCombine())}>
+          <button type="button" aria-disabled={!canCombine()} disabled={!canCombine()} onClick={() => handleCombine('subtract')} style={comboBtnStyle(!canCombine())}>
             Subtract
           </button>
-          <button disabled={!canCombine()} onClick={() => handleCombine('intersect')} style={comboBtnStyle(!canCombine())}>
+          <button type="button" aria-disabled={!canCombine()} disabled={!canCombine()} onClick={() => handleCombine('intersect')} style={comboBtnStyle(!canCombine())}>
             Intersect
           </button>
-          <button disabled={!canCombine()} onClick={() => handleCombine('exclude')} style={comboBtnStyle(!canCombine())}>
+          <button type="button" aria-disabled={!canCombine()} disabled={!canCombine()} onClick={() => handleCombine('exclude')} style={comboBtnStyle(!canCombine())}>
             Exclude
           </button>
         </div>
 
-        {/* Canvas container */}
         <div
-          style={{
-            border: '1px solid #ccc',
-            background: '#fff',
-            borderRadius: 6,
-            padding: 6,
-            display: 'flex',
-            justifyContent: 'center'
-          }}
+            style={{
+              border: '1px solid #ccc',
+              background: '#fff',
+              borderRadius: 6,
+              padding: 6,
+              display: 'flex',
+              justifyContent: 'center'
+            }}
         >
           <VectorCanvas
             ref={canvasRef}
@@ -302,47 +339,54 @@ export default function App() {
             style={{ width: 320, height: 240, display: 'block' }}
             onShapesChange={() => refreshShapes()}
             onSelectionChange={handleSelectionChange}
+            aria-label="Zone de dessin vectoriel"
           />
         </div>
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button
-            onClick={handleClear}
-            title="Clear"
-            style={iconBtnStyle(false)}
-          >
-            <Trash2 size={18} />
+        <div role="toolbar" aria-label="Actions globales" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" onClick={handleClear} title="Effacer" aria-label="Effacer toutes les formes" style={iconBtnStyle(false)}>
+            <Trash2 size={18} aria-hidden="true" />
           </button>
           <button
+            type="button"
             onClick={handlePushToCanva}
             disabled={pushing || shapes.length === 0}
-            title="Add to Canva"
+            aria-disabled={pushing || shapes.length === 0}
+            title="Envoyer vers Canva"
+            aria-label="Envoyer vers Canva"
             style={iconBtnStyle(pushing || shapes.length === 0)}
           >
-            <Upload size={18} />
+            <Upload size={18} aria-hidden="true" />
           </button>
           <button
+            type="button"
             onClick={handleUndo}
             disabled={historyIndex <= 0}
-            title="Undo"
+            aria-disabled={historyIndex <= 0}
+            title="Annuler"
+            aria-label="Annuler"
             style={iconBtnStyle(historyIndex <= 0)}
           >
-            <RotateCcw size={18} />
+            <RotateCcw size={18} aria-hidden="true" />
           </button>
           <button
+            type="button"
+            aria-pressed={handlesVisible}
             onClick={toggleHandles}
-            title={handlesVisible ? 'Hide Bezier handles' : 'Show Bezier handles'}
+            title={handlesVisible ? 'Masquer les poignées' : 'Afficher les poignées'}
+            aria-label={handlesVisible ? 'Masquer les poignées Bézier' : 'Afficher les poignées Bézier'}
             style={iconBtnStyle(false)}
           >
-            {handlesVisible ? <Eye size={18} /> : <EyeOff size={18} />}
+            {handlesVisible ? <Eye size={18} aria-hidden="true" /> : <EyeOff size={18} aria-hidden="true" />}
           </button>
         </div>
 
-        {/* Layers */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ fontWeight: 600, fontSize: 13 }}>Layers</div>
-          <div
+        <section aria-labelledby="layers-title">
+          <div id="layers-title" style={{ fontWeight: 600, fontSize: 13 }}>Layers</div>
+          <ul
+            id="layers-panel"
+            role="list"
+            aria-label="Liste des calques"
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -351,14 +395,25 @@ export default function App() {
               overflowY: 'auto',
               border: '1px solid #eee',
               padding: 6,
-              borderRadius: 6
+              borderRadius: 6,
+              margin: 0,
+              listStyle: 'none'
             }}
           >
             {shapes.map(s => {
               const isSel = selected.some(sel => sel.id === s.id);
               return (
-                <div
+                <li
                   key={s.id}
+                  role="listitem"
+                  aria-selected={isSel}
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      canvasRef.current?.selectShapes?.([s.id]);
+                    }
+                  }}
                   onClick={(e) => {
                     if (e.shiftKey) {
                       const alreadySelected = selected.map(sel => sel.id);
@@ -378,11 +433,9 @@ export default function App() {
                     border: '1px solid ' + (isSel ? '#4d8dff' : '#ddd'),
                     background: isSel ? '#ddeaff' : '#fafafa',
                     borderRadius: 4,
-                    cursor: 'pointer',
-                    transition: 'background .15s, border-color .15s'
+                    cursor: 'pointer'
                   }}
                 >
-                  {/* Direct color selector */}
                   <div
                     style={{
                       position: 'relative',
@@ -393,19 +446,15 @@ export default function App() {
                       background: s.fillColor || '#ff0000',
                       flex: '0 0 18px'
                     }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      
-                      const inp = document.getElementById(`clr-${s.id}`) as HTMLInputElement | null;
-                      inp?.click();
-                    }}
                   >
                     <input
                       id={`clr-${s.id}`}
+                      aria-label={`Couleur de ${s.type}`}
                       type="color"
                       value={s.fillColor || '#ff0000'}
                       onChange={(e) => {
                         handleChangeLayerColor(s.id, e.target.value);
+                        announce('Couleur changée');
                       }}
                       style={{
                         position: 'absolute',
@@ -413,7 +462,6 @@ export default function App() {
                         opacity: 0,
                         cursor: 'pointer'
                       }}
-                      onClick={(e) => e.stopPropagation()}
                     />
                   </div>
 
@@ -423,32 +471,33 @@ export default function App() {
 
                   <div style={{ display: 'flex', gap: 2 }}>
                     <button
-                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'up'); refreshShapes(false); }}
-                      title="Move up"
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'up'); refreshShapes(false); announce('Calque monté'); }}
+                      title="Monter"
+                      aria-label="Monter le calque"
                       style={layerOrderBtnStyle}
                     >
-                      <ArrowUp size={14} />
+                      <ArrowUp size={14} aria-hidden="true" />
                     </button>
-
                     <button
-                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'down'); refreshShapes(false); }}
-                      title="Move down"
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'down'); refreshShapes(false); announce('Calque descendu'); }}
+                      title="Descendre"
+                      aria-label="Descendre le calque"
                       style={layerOrderBtnStyle}
                     >
-                      <ArrowDown size={14} />
+                      <ArrowDown size={14} aria-hidden="true" />
                     </button>
-
-                    {/* Rotate right - one click = 10deg, hold = continuous */}
                     <button
+                      type="button"
                       onMouseDown={(e) => {
                         e.stopPropagation();
                         const rotateOnce = () => {
                           canvasRef.current?.rotateShape?.(s.id, 10);
                           refreshShapes(false);
+                          announce('Rotation 10 degrés');
                         };
-                        
                         rotateOnce();
-                        
                         const intervalId = window.setInterval(rotateOnce, 120);
                         const stop = () => {
                           clearInterval(intervalId);
@@ -459,11 +508,11 @@ export default function App() {
                         window.addEventListener('touchend', stop);
                       }}
                       onTouchStart={(e) => {
-                        
                         e.stopPropagation();
                         const rotateOnce = () => {
                           canvasRef.current?.rotateShape?.(s.id, 10);
                           refreshShapes(false);
+                          announce('Rotation 10 degrés');
                         };
                         rotateOnce();
                         const intervalId = window.setInterval(rotateOnce, 120);
@@ -475,48 +524,54 @@ export default function App() {
                         window.addEventListener('touchend', stop);
                         window.addEventListener('mouseup', stop);
                       }}
-                      title="Rotate right"
+                      title="Rotation droite 10°"
+                      aria-label="Rotation droite 10 degrés"
                       style={layerOrderBtnStyle}
                     >
-                      <RotateCw size={14} />
+                      <RotateCw size={14} aria-hidden="true" />
                     </button>
-
                     <button
-                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 1.1); refreshShapes(false); }}
-                      title="Scale +10%"
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 1.1); refreshShapes(false); announce('Agrandie'); }}
+                      title="Agrandir"
+                      aria-label="Agrandir 10 pourcents"
                       style={layerOrderBtnStyle}
                     >
                       +
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 0.9); refreshShapes(false); }}
-                      title="Scale -10%"
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 0.9); refreshShapes(false); announce('Réduite'); }}
+                      title="Réduire"
+                      aria-label="Réduire 10 pourcents"
                       style={layerOrderBtnStyle}
                     >
                       –
                     </button>
                   </div>
-
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       canvasRef.current?.deleteShape?.(s.id);
                       refreshShapes();
+                      announce('Forme supprimée');
                     }}
                     style={deleteBtnStyle}
-                    title="Delete"
+                    title="Supprimer"
+                    aria-label="Supprimer cette forme"
                   >
                     ✕
                   </button>
-                </div>
+                </li>
               );
             })}
-            {shapes.length === 0 && <div style={{ fontSize: 11, color: '#777' }}>No shapes</div>}
-          </div>
-        </div>
+            {shapes.length === 0 && <li style={{ fontSize: 11, color: '#777' }}>No shapes</li>}
+          </ul>
+        </section>
 
-        {/* Help / Shortcuts collapsible */}
-        <div
+        <section
+          aria-labelledby="help-shortcuts-heading"
           style={{
             marginTop: 16,
             border: '1px solid #eee',
@@ -525,13 +580,15 @@ export default function App() {
             fontSize: 12,
             color: '#444',
             overflow: 'hidden',
-            maxHeight: 220, 
+            maxHeight: 220
           }}
         >
           <button
             type="button"
+            id="help-shortcuts-button"
             onClick={() => setHelpOpen(o => !o)}
             aria-expanded={helpOpen}
+            aria-controls="help-shortcuts-panel"
             style={{
               all: 'unset',
               display: 'flex',
@@ -543,16 +600,19 @@ export default function App() {
               fontWeight: 600,
               background: helpOpen ? '#f2f2f2' : '#fafafa'
             }}
-            title="Toggle help panel"
+            title="Ouvrir l’aide"
           >
-            <span>Help / Shortcuts</span>
+            <span id="help-shortcuts-heading">Help / Shortcuts</span>
           </button>
           {helpOpen && (
             <div
+              id="help-shortcuts-panel"
+              role="region"
+              aria-labelledby="help-shortcuts-heading"
               style={{
-                padding: '8px 12px',
+                padding: '8px 12px 28px', // was '8px 12px' -> added extra bottom padding
                 lineHeight: 1.4,
-                maxHeight: 180, 
+                maxHeight: 180,
                 overflowY: 'auto'
               }}
             >
@@ -593,19 +653,34 @@ export default function App() {
               <ul style={{ margin: '0 0 8px', paddingLeft: 16 }}>
                 <li><b>Enter</b>: Push shapes to Canva</li>
                 <li><b>Delete / Backspace</b>: Delete selection</li>
-                <li><b>Esc</b>: Clear selection</li>
                 <li><b>1–8</b>: Add palette shape</li>
                 <li><b>Click / Shift+Click</b>: Select / multi-select</li>
                 <li><b>/</b>: Scale +10% &nbsp;|&nbsp; <b>-</b>: Scale -10%</li>
                 <li><b>[ / ]</b>: Move layer down / up</li>
                 <li><b>Cmd/Ctrl+Z</b>: Undo</li>
               </ul>
-              <div style={{ height: 12 }} /> 
+              <div style={{ height: 12 }} />
             </div>
           )}
-        </div>
+        </section>
+
+        <div
+          ref={liveRef}
+          aria-live="polite"
+          aria-atomic="true"
+          style={{
+            position: 'absolute',
+            width: 1,
+            height: 1,
+            padding: 0,
+            margin: -1,
+            overflow: 'hidden',
+            clip: 'rect(0 0 0 0)',
+            border: 0
+          }}
+        />
       </div>
-    </div>
+    </main>
   );
 }
 

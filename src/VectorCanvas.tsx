@@ -847,6 +847,9 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     <>
       <canvas
         ref={canvasRef}
+        role="img"
+        aria-label="Zone de dessin, utilisez les poignées pour ajuster les courbes"
+        tabIndex={0}
         width={props.width || 300}
         height={props.height || 240}
         style={{ ...props.style, touchAction: "none", pointerEvents: "auto", cursor: "default" }}
