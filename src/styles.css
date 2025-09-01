@@ -1,6 +1,6 @@
 /* Styles */
 .app-container {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: "Canva Sans", "Canva Sans Display", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding: 16px;
   max-width: 1200px;
   margin: 0 auto;
@@ -50,4 +50,9 @@ a:focus-visible {
   .left-panel {
     flex: none;
   }
+}
+
+/* Option: titres plus grands forcent Canva Sans Display si dispo */
+h1, h2, h3, [data-canva-title] {
+  font-family: "Canva Sans Display", "Canva Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }

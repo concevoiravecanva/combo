@@ -19,6 +19,7 @@ import {
   ArrowDown
 } from 'lucide-react';
 import { addElementAtPoint } from '@canva/design'; 
+import { Title, Text } from '@canva/app-ui-kit';
 
 type CombineOp = 'union' | 'subtract' | 'intersect' | 'exclude';
 
@@ -617,21 +618,21 @@ export default function App() {
               }}
             >
               <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>How the app works</div>
-              <p style={{ margin: '0 0 10px 0' }}>
-                <b>Combo</b> lets you create and edit vector shapes, combine them using boolean operations, and send your design to Canva.
-                <br /><br />
-                <b>How to use:</b>
-                <ul style={{ margin: '8px 0 10px 0', paddingLeft: 16 }}>
-                  <li><b>Add shapes:</b> Use the shape palette at the top to add new shapes to the canvas.</li>
-                  <li><b>Select shapes:</b> Click a shape in the canvas or in the layers panel to select it. Hold <b>Shift</b> to select multiple shapes.</li>
-                  <li><b>Combine shapes:</b> Select two shapes and use the Union, Subtract, Intersect, or Exclude buttons to combine them.</li>
-                  <li><b>Edit layers:</b> Use the layers panel to change color, reorder, scale, or delete shapes.</li>
-                  <li><b>Bezier handles:</b> Toggle Bezier handles with the eye button to adjust curves.</li>
-                  <li><b>Undo:</b> Use the Undo button to revert your last change.</li>
-                  <li><b>Clear:</b> Use the Trash button to remove all shapes from the canvas.</li>
-                  <li><b>Push to Canva:</b> Use the Upload button or press <b>Enter</b> to send your design to Canva.</li>
-                </ul>
-              </p>
+              <Text size="small" tone="tertiary">
+                Combo lets you create and edit vector shapes, combine your design to Canva.
+              </Text>
+              <br />
+              <b>How to use:</b>
+              <ul style={{ margin: '8px 0 10px 0', paddingLeft: 16 }}>
+                <li><b>Add shapes:</b> Use the shape palette at the top to add new shapes to the canvas.</li>
+                <li><b>Select shapes:</b> Click a shape in the canvas or in the layers panel to select it. Hold <b>Shift</b> to select multiple shapes.</li>
+                <li><b>Combine shapes:</b> Select two shapes and use the Union, Subtract, Intersect, or Exclude buttons to combine them.</li>
+                <li><b>Edit layers:</b> Use the layers panel to change color, reorder, scale, or delete shapes.</li>
+                <li><b>Bezier handles:</b> Toggle Bezier handles with the eye button to adjust curves.</li>
+                <li><b>Undo:</b> Use the Undo button to revert your last change.</li>
+                <li><b>Clear:</b> Use the Trash button to remove all shapes from the canvas.</li>
+                <li><b>Push to Canva:</b> Use the Upload button or press <b>Enter</b> to send your design to Canva.</li>
+              </ul>
               <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>Button explanations</div>
               <ul style={{ margin: '0 0 10px 0', paddingLeft: 16 }}>
                 <li><b>Shape palette</b>: Add a new shape to the canvas.</li>
