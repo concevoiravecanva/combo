@@ -628,7 +628,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     paper.view.update();
   }, [props.width, props.height]);
 
-  // ---------- Drag & Bézier editing ----------
+  // ---------- Drag & Bezier editing ----------
   useEffect(() => {
     if (!canvasRef.current || !paper.project) return;
 
@@ -848,7 +848,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       <canvas
         ref={canvasRef}
         role="img"
-        aria-label="Zone de dessin, utilisez les poignées pour ajuster les courbes"
+        aria-label="Drawing area, use handles to adjust curves"
         tabIndex={0}
         width={props.width || 300}
         height={props.height || 240}

@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { addElementAtPoint } from '@canva/design'; 
 import { Title, Text } from '@canva/app-ui-kit';
+import { FormattedMessage, useIntl } from 'react-intl';
+import { messages } from './i18n/messages';
 
 type CombineOp = 'union' | 'subtract' | 'intersect' | 'exclude';
 
@@ -44,6 +46,7 @@ export default function App() {
   const [handlesVisible, setHandlesVisible] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false); 
   const liveRef = useRef<HTMLDivElement|null>(null);
+  const intl = useIntl();
 
   function announce(msg: string) {
     if (!liveRef.current) return;
@@ -67,11 +70,9 @@ export default function App() {
 
   function handleSelectionChange(sel: ShapeData[]) {
     setSelected(sel);
-    announce(sel.length === 0
-      ? 'Aucune forme sélectionnée'
-      : sel.length === 1
-        ? '1 forme sélectionnée'
-        : sel.length + ' formes sélectionnées');
+    if (sel.length === 0) announce(intl.formatMessage(messages.selection_none));
+    else if (sel.length === 1) announce(intl.formatMessage(messages.selection_one));
+    else announce(intl.formatMessage(messages.selection_many, { count: sel.length }));
   }
 
   function handleAddShape(type: string) {
@@ -104,6 +105,7 @@ export default function App() {
 
   function handleChangeLayerColor(id: string, color: string) {
     canvasRef.current?.changeShapeColor?.(id, color);
+    announce(intl.formatMessage(messages.color_change_announce));
     refreshShapes(false);
   }
 
@@ -237,7 +239,7 @@ export default function App() {
   return (
     <main
       role="main"
-      aria-label="Éditeur vectoriel"
+      aria-label="Vector editor"
       style={{
         width: '100%',
         height: '100%',
@@ -262,7 +264,7 @@ export default function App() {
         onFocus={(e) => { e.currentTarget.style.left = '8px'; }}
         onBlur={(e) => { e.currentTarget.style.left = '-9999px'; }}
       >
-        Aller à la liste des calques
+        Skip to layers list
       </a>
 
       <div
@@ -301,7 +303,7 @@ export default function App() {
 
         <div
           role="group"
-          aria-label="Opérations booléennes"
+          aria-label="Boolean operations"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(2, 1fr)',
@@ -309,17 +311,41 @@ export default function App() {
             width: '100%'
           }}
         >
-          <button type="button" aria-disabled={!canCombine()} disabled={!canCombine()} onClick={() => handleCombine('union')} style={comboBtnStyle(!canCombine())}>
-            Union
+          <button
+            type="button"
+            aria-disabled={!canCombine()}
+            disabled={!canCombine()}
+            onClick={() => handleCombine('union')}
+            style={comboBtnStyle(!canCombine())}
+          >
+            <FormattedMessage {...messages.boolean_union} />
           </button>
-          <button type="button" aria-disabled={!canCombine()} disabled={!canCombine()} onClick={() => handleCombine('subtract')} style={comboBtnStyle(!canCombine())}>
-            Subtract
+          <button
+            type="button"
+            aria-disabled={!canCombine()}
+            disabled={!canCombine()}
+            onClick={() => handleCombine('subtract')}
+            style={comboBtnStyle(!canCombine())}
+          >
+            <FormattedMessage {...messages.boolean_subtract} />
           </button>
-          <button type="button" aria-disabled={!canCombine()} disabled={!canCombine()} onClick={() => handleCombine('intersect')} style={comboBtnStyle(!canCombine())}>
-            Intersect
+          <button
+            type="button"
+            aria-disabled={!canCombine()}
+            disabled={!canCombine()}
+            onClick={() => handleCombine('intersect')}
+            style={comboBtnStyle(!canCombine())}
+          >
+            <FormattedMessage {...messages.boolean_intersect} />
           </button>
-          <button type="button" aria-disabled={!canCombine()} disabled={!canCombine()} onClick={() => handleCombine('exclude')} style={comboBtnStyle(!canCombine())}>
-            Exclude
+          <button
+            type="button"
+            aria-disabled={!canCombine()}
+            disabled={!canCombine()}
+            onClick={() => handleCombine('exclude')}
+            style={comboBtnStyle(!canCombine())}
+          >
+            <FormattedMessage {...messages.boolean_exclude} />
           </button>
         </div>
 
@@ -374,8 +400,8 @@ export default function App() {
             type="button"
             aria-pressed={handlesVisible}
             onClick={toggleHandles}
-            title={handlesVisible ? 'Masquer les poignées' : 'Afficher les poignées'}
-            aria-label={handlesVisible ? 'Masquer les poignées Bézier' : 'Afficher les poignées Bézier'}
+            title={handlesVisible ? 'Hide handles' : 'Show handles'}
+            aria-label={handlesVisible ? 'Hide Bezier handles' : 'Show Bezier handles'}
             style={iconBtnStyle(false)}
           >
             {handlesVisible ? <Eye size={18} aria-hidden="true" /> : <EyeOff size={18} aria-hidden="true" />}
@@ -383,7 +409,9 @@ export default function App() {
         </div>
 
         <section aria-labelledby="layers-title">
-          <div id="layers-title" style={{ fontWeight: 600, fontSize: 13 }}>Layers</div>
+          <div id="layers-title" style={{ fontWeight: 600, fontSize: 13 }}>
+            <FormattedMessage {...messages.layers_heading} />
+          </div>
           <ul
             id="layers-panel"
             role="list"
@@ -450,12 +478,12 @@ export default function App() {
                   >
                     <input
                       id={`clr-${s.id}`}
-                      aria-label={`Couleur de ${s.type}`}
+                      aria-label={`Color of ${s.type}`}
                       type="color"
                       value={s.fillColor || '#ff0000'}
                       onChange={(e) => {
                         handleChangeLayerColor(s.id, e.target.value);
-                        announce('Couleur changée');
+                        announce('Color changed');
                       }}
                       style={{
                         position: 'absolute',
@@ -473,18 +501,18 @@ export default function App() {
                   <div style={{ display: 'flex', gap: 2 }}>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'up'); refreshShapes(false); announce('Calque monté'); }}
-                      title="Monter"
-                      aria-label="Monter le calque"
+                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'up'); refreshShapes(false); announce('Layer moved up'); }}
+                      title="Move up"
+                      aria-label="Move layer up"
                       style={layerOrderBtnStyle}
                     >
                       <ArrowUp size={14} aria-hidden="true" />
                     </button>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'down'); refreshShapes(false); announce('Calque descendu'); }}
-                      title="Descendre"
-                      aria-label="Descendre le calque"
+                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'down'); refreshShapes(false); announce('Layer moved down'); }}
+                      title="Move down"
+                      aria-label="Move layer down"
                       style={layerOrderBtnStyle}
                     >
                       <ArrowDown size={14} aria-hidden="true" />
@@ -496,7 +524,7 @@ export default function App() {
                         const rotateOnce = () => {
                           canvasRef.current?.rotateShape?.(s.id, 10);
                           refreshShapes(false);
-                          announce('Rotation 10 degrés');
+                          announce(intl.formatMessage(messages.rotate_announce));
                         };
                         rotateOnce();
                         const intervalId = window.setInterval(rotateOnce, 120);
@@ -513,7 +541,7 @@ export default function App() {
                         const rotateOnce = () => {
                           canvasRef.current?.rotateShape?.(s.id, 10);
                           refreshShapes(false);
-                          announce('Rotation 10 degrés');
+                          announce(intl.formatMessage(messages.rotate_announce));
                         };
                         rotateOnce();
                         const intervalId = window.setInterval(rotateOnce, 120);
@@ -525,26 +553,26 @@ export default function App() {
                         window.addEventListener('touchend', stop);
                         window.addEventListener('mouseup', stop);
                       }}
-                      title="Rotation droite 10°"
-                      aria-label="Rotation droite 10 degrés"
+                      title="Rotate right 10°"
+                      aria-label="Rotate right 10 degrees"
                       style={layerOrderBtnStyle}
                     >
                       <RotateCw size={14} aria-hidden="true" />
                     </button>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 1.1); refreshShapes(false); announce('Agrandie'); }}
-                      title="Agrandir"
-                      aria-label="Agrandir 10 pourcents"
+                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 1.1); refreshShapes(false); announce('Scaled up'); }}
+                      title="Scale up"
+                      aria-label="Scale up 10 percent"
                       style={layerOrderBtnStyle}
                     >
                       +
                     </button>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 0.9); refreshShapes(false); announce('Réduite'); }}
-                      title="Réduire"
-                      aria-label="Réduire 10 pourcents"
+                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 0.9); refreshShapes(false); announce('Scaled down'); }}
+                      title="Scale down"
+                      aria-label="Scale down 10 percent"
                       style={layerOrderBtnStyle}
                     >
                       –
@@ -556,18 +584,20 @@ export default function App() {
                       e.stopPropagation();
                       canvasRef.current?.deleteShape?.(s.id);
                       refreshShapes();
-                      announce('Forme supprimée');
+                      announce('Shape deleted');
                     }}
                     style={deleteBtnStyle}
-                    title="Supprimer"
-                    aria-label="Supprimer cette forme"
+                    title="Delete"
+                    aria-label="Delete this shape"
                   >
                     ✕
                   </button>
                 </li>
               );
             })}
-            {shapes.length === 0 && <li style={{ fontSize: 11, color: '#777' }}>No shapes</li>}
+            {shapes.length === 0 && <li style={{ fontSize: 11, color: '#777' }}>
+              <FormattedMessage {...messages.no_shapes} />
+            </li>}
           </ul>
         </section>
 
@@ -603,7 +633,9 @@ export default function App() {
             }}
             title="Ouvrir l’aide"
           >
-            <span id="help-shortcuts-heading">Help / Shortcuts</span>
+            <span id="help-shortcuts-heading">
+              <FormattedMessage {...messages.help_heading} />
+            </span>
           </button>
           {helpOpen && (
             <div
@@ -617,7 +649,9 @@ export default function App() {
                 overflowY: 'auto'
               }}
             >
-              <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>How the app works</div>
+              <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>
+                <FormattedMessage {...messages.help_how_title} />
+              </div>
               <Text size="small" tone="tertiary">
                 Combo lets you create and edit vector shapes, combine your design to Canva.
               </Text>

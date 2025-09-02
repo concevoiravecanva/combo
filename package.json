@@ -19,7 +19,8 @@
     "format:file": "prettier $1 --no-config --write",
     "test": "jest --no-cache --detectOpenHandles",
     "test:watch": "jest --no-cache --watch",
-    "postinstall": "ts-node ./scripts/copy_env.ts"
+    "postinstall": "ts-node ./scripts/copy_env.ts",
+    "i18n:extract": "formatjs extract 'src/**/*.{ts,tsx}' --format simple --out-file i18n/en.json --config formatjs.extract.config.json"
   },
   "keywords": [],
   "author": "Canva Pty Ltd.",
@@ -48,7 +49,7 @@
   "devDependencies": {
     "@canva/app-eslint-plugin": "^1.0.0-beta.3",
     "@canva/cli": ">= 0.0.1-beta.13 < 0.0.2",
-    "@formatjs/cli": "6.7.2",
+    "@formatjs/cli": "^6.4.0",
     "@formatjs/ts-transformer": "3.14.0",
     "@ngrok/ngrok": "1.5.1",
     "@svgr/webpack": "8.1.0",

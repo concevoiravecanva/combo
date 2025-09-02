@@ -1,0 +1,128 @@
+import { defineMessages } from 'react-intl';
+
+export const messages = defineMessages({
+  palette_add_shape: {
+    defaultMessage: 'Add {shape}',
+    description: 'Tooltip / aria-label for button that adds a specific shape'
+  },
+  boolean_union: {
+    defaultMessage: 'Union',
+    description: 'Boolean operation button label: create union of two shapes'
+  },
+  boolean_subtract: {
+    defaultMessage: 'Subtract',
+    description: 'Boolean operation button label: subtract B from A'
+  },
+  boolean_intersect: {
+    defaultMessage: 'Intersect',
+    description: 'Boolean operation button label: intersection of two shapes'
+  },
+  boolean_exclude: {
+    defaultMessage: 'Exclude',
+    description: 'Boolean operation button label: XOR (exclude overlap) of two shapes'
+  },
+  toolbar_clear: {
+    defaultMessage: 'Clear',
+    description: 'Global action button to remove all shapes'
+  },
+  toolbar_upload: {
+    defaultMessage: 'Upload',
+    description: 'Button to push current design to Canva'
+  },
+  toolbar_undo: {
+    defaultMessage: 'Undo',
+    description: 'Undo last action button'
+  },
+  toolbar_handles_show: {
+    defaultMessage: 'Show handles',
+    description: 'Button label when bezier handles are hidden'
+  },
+  toolbar_handles_hide: {
+    defaultMessage: 'Hide handles',
+    description: 'Button label when bezier handles are visible'
+  },
+  layers_heading: {
+    defaultMessage: 'Layers',
+    description: 'Heading for layers panel'
+  },
+  help_heading: {
+    defaultMessage: 'Help / Shortcuts',
+    description: 'Expandable help section heading'
+  },
+  help_how_title: {
+    defaultMessage: 'How the app works',
+    description: 'Title inside help panel describing how the app functions'
+  },
+  help_usage_title: {
+    defaultMessage: 'How to use:',
+    description: 'Subheading before usage instructions list'
+  },
+  help_list_add: {
+    defaultMessage: 'Add shapes: Use the shape palette to add shapes.',
+    description: 'Help list item: how to add shapes'
+  },
+  help_list_select: {
+    defaultMessage: 'Select shapes: Click shapes or use Shift+Click for multi-select.',
+    description: 'Help list item: selecting shapes'
+  },
+  help_list_combine: {
+    defaultMessage: 'Combine shapes: Select two shapes then run boolean operations.',
+    description: 'Help list item: boolean operations'
+  },
+  help_list_edit_layers: {
+    defaultMessage: 'Edit layers: Change color, order, scale, or delete.',
+    description: 'Help list item: layer editing'
+  },
+  help_list_handles: {
+    defaultMessage: 'Bezier handles: Toggle handles to adjust curves.',
+    description: 'Help list item: bezier handles'
+  },
+  help_list_undo: {
+    defaultMessage: 'Undo: Revert your last change.',
+    description: 'Help list item: undo'
+  },
+  help_list_clear: {
+    defaultMessage: 'Clear: Remove all shapes.',
+    description: 'Help list item: clear canvas'
+  },
+  help_list_upload: {
+    defaultMessage: 'Upload: Send your design to Canva.',
+    description: 'Help list item: upload'
+  },
+  help_buttons_title: {
+    defaultMessage: 'Button explanations',
+    description: 'Subheading for button explanations list'
+  },
+  help_shortcuts_title: {
+    defaultMessage: 'Shortcuts',
+    description: 'Subheading for shortcuts list'
+  },
+  no_shapes: {
+    defaultMessage: 'No shapes',
+    description: 'Message shown when there are no shapes'
+  },
+  color_change_announce: {
+    defaultMessage: 'Color changed',
+    description: 'Live region announcement after changing color'
+  },
+  rotate_announce: {
+    defaultMessage: 'Rotated 10 degrees',
+    description: 'Live region announcement after a 10 degree rotation'
+  },
+  deleted_shape_announce: {
+    defaultMessage: 'Shape deleted',
+    description: 'Live region announcement after deleting a shape'
+  },
+  selection_none: {
+    defaultMessage: 'No shapes selected',
+    description: 'Announcement when selection becomes empty'
+  },
+  selection_one: {
+    defaultMessage: '1 shape selected',
+    description: 'Announcement when exactly one shape selected'
+  },
+  selection_many: {
+    defaultMessage: '{count} shapes selected',
+    description: 'Announcement when multiple shapes selected (count variable)'
+  }
+});

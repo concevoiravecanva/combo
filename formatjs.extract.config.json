@@ -1,0 +1,5 @@
+{
+  "idInterpolationPattern": "[sha512:contenthash:base64:6]",
+  "extractSourceLocation": true,
+  "ignore": ["**/node_modules/**", "**/dist/**"]
+}
