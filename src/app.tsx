@@ -495,7 +495,15 @@ export default function App() {
                     />
                   </div>
 
-                  <span style={{ fontSize: 11, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      flex: 1,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      color: 'var(--ui-kit-color-typography-primary)'
+                    }}
+                  >
                     {s.type}
                   </span>
 
