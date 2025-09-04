@@ -351,8 +351,8 @@ export default function App() {
 
         <div
             style={{
-              border: '1px solid #ccc',
-              background: '#fff',
+              border: '1px solid var(--ui-kit-color-border)',
+              background: 'var(--ui-kit-color-surface)',
               borderRadius: 6,
               padding: 6,
               display: 'flex',
@@ -372,7 +372,7 @@ export default function App() {
 
         <div role="toolbar" aria-label="Actions globales" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button type="button" onClick={handleClear} title="Effacer" aria-label="Effacer toutes les formes" style={iconBtnStyle(false)}>
-            <Trash2 size={18} aria-hidden="true" />
+            <Trash2 size={18} aria-hidden="true" style={{ color: 'var(--ui-kit-color-critical)' }} />
           </button>
           <button
             type="button"
@@ -404,7 +404,7 @@ export default function App() {
             aria-label={handlesVisible ? 'Hide Bezier handles' : 'Show Bezier handles'}
             style={iconBtnStyle(false)}
           >
-            {handlesVisible ? <Eye size={18} aria-hidden="true" /> : <EyeOff size={18} aria-hidden="true" />}
+            {handlesVisible ? <Eye size={18} aria-hidden="true" style={{ color: 'var(--ui-kit-color-typography-primary)' }} /> : <EyeOff size={18} aria-hidden="true" />}
           </button>
         </div>
 
@@ -459,8 +459,9 @@ export default function App() {
                     alignItems: 'center',
                     gap: 6,
                     padding: '4px 6px',
-                    border: '1px solid ' + (isSel ? '#4d8dff' : '#ddd'),
-                    background: isSel ? '#ddeaff' : '#fafafa',
+                    border: '1px solid ' + (isSel ? 'var(--ui-kit-color-primary)' : 'var(--ui-kit-color-border)'),
+                    background: isSel ? 'var(--ui-kit-color-primary-low)' : 'var(--ui-kit-color-surface)',
+                    color: isSel ? 'var(--ui-kit-color-primary-fore)' : 'var(--ui-kit-color-typography-primary)',
                     borderRadius: 4,
                     cursor: 'pointer'
                   }}
@@ -652,7 +653,7 @@ export default function App() {
               <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>
                 <FormattedMessage {...messages.help_how_title} />
               </div>
-              <Text size="small" tone="tertiary">
+              <Text size="small" tone="tertiary" style={{ color: 'var(--ui-kit-color-typography-primary)' }}>
                 Combo lets you create and edit vector shapes, combine your design to Canva.
               </Text>
               <br />
@@ -724,8 +725,8 @@ const shapeBtnStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  border: '1px solid #D0D0D0',
-  background: '#FFFFFF',
+  border: '1px solid var(--ui-kit-color-border)',
+  background: 'var(--ui-kit-color-surface)',
   borderRadius: 6,
   cursor: 'pointer',
   padding: 0
@@ -734,8 +735,9 @@ const shapeBtnStyle: React.CSSProperties = {
 const comboBtnStyle = (disabled: boolean): React.CSSProperties => ({
   padding: '8px 10px',
   fontSize: 12,
-  border: '1px solid #ccc',
-  background: disabled ? '#f0f0f0' : '#fff',
+  border: '1px solid var(--ui-kit-color-border)',
+  background: disabled ? 'var(--ui-kit-color-primary-disabled)' : 'var(--ui-kit-color-primary)',
+  color: disabled ? 'var(--ui-kit-color-primary-fore-disabled)' : 'var(--ui-kit-color-primary-fore)',
   cursor: disabled ? 'default' : 'pointer',
   borderRadius: 6,
   boxShadow: '0 1px 2px rgba(0,0,0,0.06)'
@@ -745,8 +747,9 @@ const iconBtnStyle = (disabled?: boolean): React.CSSProperties => ({
   height: 44,
   width: 44,
   borderRadius: 10,
-  border: '1px solid #ccc',
-  background: '#fff',
+  border: '1px solid var(--ui-kit-color-border)',
+  background: 'var(--ui-kit-color-surface)',
+  color: 'var(--ui-kit-color-typography-primary)',
   fontSize: 18,
   display: 'flex',
   alignItems: 'center',
@@ -759,8 +762,9 @@ const iconBtnStyle = (disabled?: boolean): React.CSSProperties => ({
 });
 
 const layerOrderBtnStyle = {
-  border: '1px solid #ccc',
-  background: '#fff',
+  border: '1px solid var(--ui-kit-color-border)',
+  background: 'var(--ui-kit-color-surface)',
+  color: 'var(--ui-kit-color-typography-primary)',
   padding: 2,
   borderRadius: 4,
   cursor: 'pointer',
@@ -774,7 +778,7 @@ const layerOrderBtnStyle = {
 const deleteBtnStyle: React.CSSProperties = {
   border: 'none',
   background: 'transparent',
-  color: '#c00',
+  color: 'var(--ui-kit-color-critical)',
   cursor: 'pointer',
   fontSize: 14,
   lineHeight: 1,
