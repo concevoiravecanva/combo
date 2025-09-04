@@ -614,11 +614,11 @@ export default function App() {
           aria-labelledby="help-shortcuts-heading"
           style={{
             marginTop: 16,
-            border: '1px solid #eee',
+            border: '1px solid var(--ui-kit-color-border)',
             borderRadius: 6,
-            background: '#fafafa',
+            background: 'var(--ui-kit-color-surface)',
             fontSize: 12,
-            color: '#444',
+            color: 'var(--ui-kit-color-typography-primary)',
             overflow: 'hidden',
             maxHeight: 220
           }}
@@ -638,9 +638,10 @@ export default function App() {
               cursor: 'pointer',
               padding: '8px 10px',
               fontWeight: 600,
-              background: helpOpen ? '#f2f2f2' : '#fafafa'
+              background: 'var(--ui-kit-color-surface)',
+              color: 'var(--ui-kit-color-typography-primary)'
             }}
-            title="Ouvrir l’aide"
+            title="Open help"
           >
             <span id="help-shortcuts-heading">
               <FormattedMessage {...messages.help_heading} />
@@ -652,10 +653,12 @@ export default function App() {
               role="region"
               aria-labelledby="help-shortcuts-heading"
               style={{
-                padding: '8px 12px 28px', // was '8px 12px' -> added extra bottom padding
+                padding: '8px 12px 28px',
                 lineHeight: 1.4,
                 maxHeight: 180,
-                overflowY: 'auto'
+                overflowY: 'auto',
+                background: 'var(--ui-kit-color-surface)',
+                color: 'var(--ui-kit-color-typography-primary)'
               }}
             >
               <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>
