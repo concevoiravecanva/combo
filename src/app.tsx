@@ -406,6 +406,7 @@ export default function App() {
           paddingRight: 4
         }}
       >
+        {/* Shape palette always visible */}
         <div
           role="group"
           aria-label="Palette de formes"
@@ -424,256 +425,260 @@ export default function App() {
           ))}
         </div>
 
-        <div
-          role="group"
-          aria-label="Boolean operations"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: 10,
-            width: '100%'
-          }}
-        >
-          <button
-            type="button"
-            aria-disabled={!canCombine()}
-            disabled={!canCombine()}
-            onClick={() => handleCombine('union')}
-            style={comboBtnStyle(!canCombine())}
-          >
-            <FormattedMessage {...messages.boolean_union} />
-          </button>
-          <button
-            type="button"
-            aria-disabled={!canCombine()}
-            disabled={!canCombine()}
-            onClick={() => handleCombine('subtract')}
-            style={comboBtnStyle(!canCombine())}
-          >
-            <FormattedMessage {...messages.boolean_subtract} />
-          </button>
-          <button
-            type="button"
-            aria-disabled={!canCombine()}
-            disabled={!canCombine()}
-            onClick={() => handleCombine('intersect')}
-            style={comboBtnStyle(!canCombine())}
-          >
-            <FormattedMessage {...messages.boolean_intersect} />
-          </button>
-          <button
-            type="button"
-            aria-disabled={!canCombine()}
-            disabled={!canCombine()}
-            onClick={() => handleCombine('exclude')}
-            style={comboBtnStyle(!canCombine())}
-          >
-            <FormattedMessage {...messages.boolean_exclude} />
-          </button>
-        </div>
-
-        <section aria-labelledby="layers-title">
-          <div id="layers-title" style={{ fontWeight: 600, fontSize: 13 }}>
-            <FormattedMessage {...messages.layers_heading} />
-          </div>
-          <ul
-            id="layers-panel"
-            role="list"
-            aria-label="Liste des calques"
+        {/* Progressive disclosure: show combine actions only if shapes exist */}
+        {shapes.length > 0 && (
+          <div
+            role="group"
+            aria-label="Boolean operations"
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 6,
-              maxHeight: 180,
-              overflowY: 'auto',
-              border: '1px solid #eee',
-              padding: 6,
-              borderRadius: 6,
-              margin: 0,
-              listStyle: 'none'
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: 10,
+              width: '100%'
             }}
           >
-            {shapes.map(s => {
-              const isSel = selected.some(sel => sel.id === s.id);
-              return (
-                <li
-                  key={s.id}
-                  role="listitem"
-                  aria-selected={isSel}
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      canvasRef.current?.selectShapes?.([s.id]);
-                    }
-                  }}
-                  onClick={(e) => {
-                    if (e.shiftKey) {
-                      const alreadySelected = selected.map(sel => sel.id);
-                      let nextIds = alreadySelected.includes(s.id)
-                        ? alreadySelected.filter(id => id !== s.id)
-                        : [...alreadySelected, s.id];
-                      canvasRef.current?.selectShapes?.(nextIds);
-                    } else {
-                      canvasRef.current?.selectShapes?.([s.id]);
-                    }
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '4px 6px',
-                    border: '1px solid ' + (isSel ? 'var(--ui-kit-color-primary)' : 'var(--ui-kit-color-border)'),
-                    background: isSel ? 'var(--ui-kit-color-primary-low)' : 'var(--ui-kit-color-surface)',
-                    color: isSel ? 'var(--ui-kit-color-primary-fore)' : 'var(--ui-kit-color-typography-primary)',
-                    borderRadius: 4,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <div
-                    style={{
-                      position: 'relative',
-                      width: 18,
-                      height: 18,
-                      borderRadius: '50%',
-                      border: '1px solid #444',
-                      background: s.fillColor || '#ff0000',
-                      flex: '0 0 18px'
-                    }}
-                  >
-                    <input
-                      id={`clr-${s.id}`}
-                      aria-label={`Color of ${s.type}`}
-                      type="color"
-                      value={s.fillColor || '#ff0000'}
-                      onChange={(e) => {
-                        handleChangeLayerColor(s.id, e.target.value);
-                        announce('Color changed');
-                      }}
-                      style={{
-                        position: 'absolute',
-                        inset: 0,
-                        opacity: 0,
-                        cursor: 'pointer'
-                      }}
-                    />
-                  </div>
+            <button
+              type="button"
+              aria-disabled={!canCombine()}
+              disabled={!canCombine()}
+              onClick={() => handleCombine('union')}
+              style={comboBtnStyle(!canCombine())}
+            >
+              <FormattedMessage {...messages.boolean_union} />
+            </button>
+            <button
+              type="button"
+              aria-disabled={!canCombine()}
+              disabled={!canCombine()}
+              onClick={() => handleCombine('subtract')}
+              style={comboBtnStyle(!canCombine())}
+            >
+              <FormattedMessage {...messages.boolean_subtract} />
+            </button>
+            <button
+              type="button"
+              aria-disabled={!canCombine()}
+              disabled={!canCombine()}
+              onClick={() => handleCombine('intersect')}
+              style={comboBtnStyle(!canCombine())}
+            >
+              <FormattedMessage {...messages.boolean_intersect} />
+            </button>
+            <button
+              type="button"
+              aria-disabled={!canCombine()}
+              disabled={!canCombine()}
+              onClick={() => handleCombine('exclude')}
+              style={comboBtnStyle(!canCombine())}
+            >
+              <FormattedMessage {...messages.boolean_exclude} />
+            </button>
+          </div>
+        )}
 
-                  <span
-                    style={{
-                      fontSize: 11,
-                      flex: 1,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      color: 'var(--ui-kit-color-typography-primary)'
+        {/* Progressive disclosure: show layers panel only if shapes exist */}
+        {shapes.length > 0 && (
+          <section aria-labelledby="layers-title">
+            <div id="layers-title" style={{ fontWeight: 600, fontSize: 13 }}>
+              <FormattedMessage {...messages.layers_heading} />
+            </div>
+            <ul
+              id="layers-panel"
+              role="list"
+              aria-label="Liste des calques"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+                maxHeight: 180,
+                overflowY: 'auto',
+                border: '1px solid #eee',
+                padding: 6,
+                borderRadius: 6,
+                margin: 0,
+                listStyle: 'none'
+              }}
+            >
+              {shapes.map(s => {
+                const isSel = selected.some(sel => sel.id === s.id);
+                return (
+                  <li
+                    key={s.id}
+                    role="listitem"
+                    aria-selected={isSel}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        canvasRef.current?.selectShapes?.([s.id]);
+                      }
                     }}
-                  >
-                    {s.type}
-                  </span>
-
-                  <div style={{ display: 'flex', gap: 2 }}>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'up'); refreshShapes(false); announce('Layer moved up'); }}
-                      title="Move up"
-                      aria-label="Move layer up"
-                      style={layerOrderBtnStyle}
-                    >
-                      <ArrowUp size={14} aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'down'); refreshShapes(false); announce('Layer moved down'); }}
-                      title="Move down"
-                      aria-label="Move layer down"
-                      style={layerOrderBtnStyle}
-                    >
-                      <ArrowDown size={14} aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onMouseDown={(e) => {
-                        e.stopPropagation();
-                        const rotateOnce = () => {
-                          canvasRef.current?.rotateShape?.(s.id, 10);
-                          refreshShapes(false);
-                          announce(intl.formatMessage(messages.rotate_announce));
-                        };
-                        rotateOnce();
-                        const intervalId = window.setInterval(rotateOnce, 120);
-                        const stop = () => {
-                          clearInterval(intervalId);
-                          window.removeEventListener('mouseup', stop);
-                          window.removeEventListener('touchend', stop);
-                        };
-                        window.addEventListener('mouseup', stop);
-                        window.addEventListener('touchend', stop);
-                      }}
-                      onTouchStart={(e) => {
-                        e.stopPropagation();
-                        const rotateOnce = () => {
-                          canvasRef.current?.rotateShape?.(s.id, 10);
-                          refreshShapes(false);
-                          announce(intl.formatMessage(messages.rotate_announce));
-                        };
-                        rotateOnce();
-                        const intervalId = window.setInterval(rotateOnce, 120);
-                        const stop = () => {
-                          clearInterval(intervalId);
-                          window.removeEventListener('touchend', stop);
-                          window.removeEventListener('mouseup', stop);
-                        };
-                        window.addEventListener('touchend', stop);
-                        window.addEventListener('mouseup', stop);
-                      }}
-                      title="Rotate right 10°"
-                      aria-label="Rotate right 10 degrees"
-                      style={layerOrderBtnStyle}
-                    >
-                      <RotateCw size={14} aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 1.1); refreshShapes(false); announce('Scaled up'); }}
-                      title="Scale up"
-                      aria-label="Scale up 10 percent"
-                      style={layerOrderBtnStyle}
-                    >
-                      +
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 0.9); refreshShapes(false); announce('Scaled down'); }}
-                      title="Scale down"
-                      aria-label="Scale down 10 percent"
-                      style={layerOrderBtnStyle}
-                    >
-                      –
-                    </button>
-                  </div>
-                  <button
-                    type="button"
                     onClick={(e) => {
-                      e.stopPropagation();
-                      canvasRef.current?.deleteShape?.(s.id);
-                      refreshShapes();
-                      announce('Shape deleted');
+                      if (e.shiftKey) {
+                        const alreadySelected = selected.map(sel => sel.id);
+                        let nextIds = alreadySelected.includes(s.id)
+                          ? alreadySelected.filter(id => id !== s.id)
+                          : [...alreadySelected, s.id];
+                        canvasRef.current?.selectShapes?.(nextIds);
+                      } else {
+                        canvasRef.current?.selectShapes?.([s.id]);
+                      }
                     }}
-                    style={deleteBtnStyle}
-                    title="Delete"
-                    aria-label="Delete this shape"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '4px 6px',
+                      border: '1px solid ' + (isSel ? 'var(--ui-kit-color-primary)' : 'var(--ui-kit-color-border)'),
+                      background: isSel ? 'var(--ui-kit-color-primary-low)' : 'var(--ui-kit-color-surface)',
+                      color: isSel ? 'var(--ui-kit-color-primary-fore)' : 'var(--ui-kit-color-typography-primary)',
+                      borderRadius: 4,
+                      cursor: 'pointer'
+                    }}
                   >
-                    ✕
-                  </button>
-                </li>
-              );
-            })}
-            {shapes.length === 0 && <li style={{ fontSize: 11, color: '#777' }}>
-              <FormattedMessage {...messages.no_shapes} />
-            </li>}
-          </ul>
-        </section>
+                    <div
+                      style={{
+                        position: 'relative',
+                        width: 18,
+                        height: 18,
+                        borderRadius: '50%',
+                        border: '1px solid #444',
+                        background: s.fillColor || '#ff0000',
+                        flex: '0 0 18px'
+                      }}
+                    >
+                      <input
+                        id={`clr-${s.id}`}
+                        aria-label={`Color of ${s.type}`}
+                        type="color"
+                        value={s.fillColor || '#ff0000'}
+                        onChange={(e) => {
+                          handleChangeLayerColor(s.id, e.target.value);
+                          announce('Color changed');
+                        }}
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          opacity: 0,
+                          cursor: 'pointer'
+                        }}
+                      />
+                    </div>
 
+                    <span
+                      style={{
+                        fontSize: 11,
+                        flex: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        color: 'var(--ui-kit-color-typography-primary)'
+                      }}
+                    >
+                      {s.type}
+                    </span>
+
+                    <div style={{ display: 'flex', gap: 2 }}>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'up'); refreshShapes(false); announce('Layer moved up'); }}
+                        title="Move up"
+                        aria-label="Move layer up"
+                        style={layerOrderBtnStyle}
+                      >
+                        <ArrowUp size={14} aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'down'); refreshShapes(false); announce('Layer moved down'); }}
+                        title="Move down"
+                        aria-label="Move layer down"
+                        style={layerOrderBtnStyle}
+                      >
+                        <ArrowDown size={14} aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          const rotateOnce = () => {
+                            canvasRef.current?.rotateShape?.(s.id, 10);
+                            refreshShapes(false);
+                            announce(intl.formatMessage(messages.rotate_announce));
+                          };
+                          rotateOnce();
+                          const intervalId = window.setInterval(rotateOnce, 120);
+                          const stop = () => {
+                            clearInterval(intervalId);
+                            window.removeEventListener('mouseup', stop);
+                            window.removeEventListener('touchend', stop);
+                          };
+                          window.addEventListener('mouseup', stop);
+                          window.addEventListener('touchend', stop);
+                        }}
+                        onTouchStart={(e) => {
+                          e.stopPropagation();
+                          const rotateOnce = () => {
+                            canvasRef.current?.rotateShape?.(s.id, 10);
+                            refreshShapes(false);
+                            announce(intl.formatMessage(messages.rotate_announce));
+                          };
+                          rotateOnce();
+                          const intervalId = window.setInterval(rotateOnce, 120);
+                          const stop = () => {
+                            clearInterval(intervalId);
+                            window.removeEventListener('touchend', stop);
+                            window.removeEventListener('mouseup', stop);
+                          };
+                          window.addEventListener('touchend', stop);
+                          window.addEventListener('mouseup', stop);
+                        }}
+                        title="Rotate right 10°"
+                        aria-label="Rotate right 10 degrees"
+                        style={layerOrderBtnStyle}
+                      >
+                        <RotateCw size={14} aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 1.1); refreshShapes(false); announce('Scaled up'); }}
+                        title="Scale up"
+                        aria-label="Scale up 10 percent"
+                        style={layerOrderBtnStyle}
+                      >
+                        +
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 0.9); refreshShapes(false); announce('Scaled down'); }}
+                        title="Scale down"
+                        aria-label="Scale down 10 percent"
+                        style={layerOrderBtnStyle}
+                      >
+                        –
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        canvasRef.current?.deleteShape?.(s.id);
+                        refreshShapes();
+                        announce('Shape deleted');
+                      }}
+                      style={deleteBtnStyle}
+                      title="Delete"
+                      aria-label="Delete this shape"
+                    >
+                      ✕
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        {/* ...help section and live region remain always visible... */}
         <section
           aria-labelledby="help-shortcuts-heading"
           style={{
