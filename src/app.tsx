@@ -251,151 +251,9 @@ export default function App() {
         overflow: 'hidden'
       }}
     >
-      {/* Toolbar and Preview label above canvas */}
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 4,
-          maxWidth: 320
-        }}
-      >
-        <Text
-          variant="bold"
-          style={{
-            fontSize: 15,
-            color: 'var(--ui-kit-color-typography-primary)'
-          }}
-        >
-          Preview
-        </Text>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {/* Clear */}
-          <button
-            type="button"
-            onClick={handleClear}
-            title="Clear"
-            aria-label="Clear all shapes"
-            style={{
-              background: 'var(--ui-kit-color-tertiary)',
-              border: 'none',
-              borderRadius: 6,
-              padding: 6,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: 'var(--ui-kit-color-tertiary-fore)'
-            }}
-          >
-            <ReloadIcon size={18} aria-hidden="true" />
-          </button>
-          {/* Undo */}
-          <button
-            type="button"
-            onClick={handleUndo}
-            disabled={historyIndex <= 0}
-            aria-disabled={historyIndex <= 0}
-            title="Undo"
-            aria-label="Undo"
-            style={{
-              background: 'var(--ui-kit-color-tertiary)',
-              border: 'none',
-              borderRadius: 6,
-              padding: 6,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: historyIndex <= 0 ? 'not-allowed' : 'pointer',
-              color: 'var(--ui-kit-color-tertiary-fore)',
-              opacity: historyIndex <= 0 ? 0.5 : 1
-            }}
-          >
-            <UndoIcon size={18} aria-hidden="true" />
-          </button>
-          {/* Toggle handles */}
-          <button
-            type="button"
-            aria-pressed={handlesVisible}
-            onClick={toggleHandles}
-            title={handlesVisible ? 'Hide handles' : 'Show handles'}
-            aria-label={handlesVisible ? 'Hide Bezier handles' : 'Show Bezier handles'}
-            style={{
-              background: 'var(--ui-kit-color-tertiary)',
-              border: 'none',
-              borderRadius: 6,
-              padding: 6,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: 'var(--ui-kit-color-tertiary-fore)'
-            }}
-          >
-            {handlesVisible ? <EyeIcon size={18} aria-hidden="true" /> : <XIcon size={18} aria-hidden="true" />}
-          </button>
-        </div>
-      </div>
-      {/* Canvas preview at the top */}
-      <div
-        style={{
-          position: 'relative',
-          border: '1px solid var(--ui-kit-color-border)',
-          background: 'var(--ui-kit-color-surface)',
-          borderRadius: 6,
-          padding: 6,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          marginBottom: 16,
-          width: 320,
-          height: 240
-        }}
-      >
-        <VectorCanvas
-          ref={canvasRef}
-          width={320}
-          height={240}
-          style={{ width: 320, height: 240, display: 'block' }}
-          onShapesChange={() => refreshShapes()}
-          onSelectionChange={handleSelectionChange}
-          aria-label="Zone de dessin vectoriel"
-        />
-        {/* Empty state message */}
-        {shapes.length === 0 && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: 320,
-              height: 240,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              pointerEvents: 'none'
-            }}
-          >
-            <Text
-              size="small"
-              tone="tertiary"
-              style={{
-                color: 'var(--ui-kit-color-typography-tertiary)',
-                textAlign: 'center'
-              }}
-            >
-              Click a shape below to add it to canvas
-            </Text>
-          </div>
-        )}
-      </div>
-
-      <div
-        style={{
-          width: '100%',
           maxWidth: 360,
-          height: '100%',
           margin: '0 auto',
           display: 'flex',
           flexDirection: 'column',
@@ -407,7 +265,139 @@ export default function App() {
           paddingRight: 4
         }}
       >
-        {/* Shapes label */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 4
+          }}
+        >
+          <Text
+            variant="bold"
+            style={{
+              fontSize: 15,
+              color: 'var(--ui-kit-color-typography-primary)'
+            }}
+          >
+            Preview
+          </Text>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              type="button"
+              onClick={handleClear}
+              title="Clear"
+              aria-label="Clear all shapes"
+              style={{
+                background: 'var(--ui-kit-color-tertiary)',
+                border: 'none',
+                borderRadius: 6,
+                padding: 6,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: 'var(--ui-kit-color-tertiary-fore)'
+              }}
+            >
+              <ReloadIcon size={18} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={handleUndo}
+              disabled={historyIndex <= 0}
+              aria-disabled={historyIndex <= 0}
+              title="Undo"
+              aria-label="Undo"
+              style={{
+                background: 'var(--ui-kit-color-tertiary)',
+                border: 'none',
+                borderRadius: 6,
+                padding: 6,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: historyIndex <= 0 ? 'not-allowed' : 'pointer',
+                color: 'var(--ui-kit-color-tertiary-fore)',
+                opacity: historyIndex <= 0 ? 0.5 : 1
+              }}
+            >
+              <UndoIcon size={18} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              aria-pressed={handlesVisible}
+              onClick={toggleHandles}
+              title={handlesVisible ? 'Hide handles' : 'Show handles'}
+              aria-label={handlesVisible ? 'Hide Bezier handles' : 'Show Bezier handles'}
+              style={{
+                background: 'var(--ui-kit-color-tertiary)',
+                border: 'none',
+                borderRadius: 6,
+                padding: 6,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: 'var(--ui-kit-color-tertiary-fore)'
+              }}
+            >
+              {handlesVisible ? <EyeIcon size={18} aria-hidden="true" /> : <XIcon size={18} aria-hidden="true" />}
+            </button>
+          </div>
+        </div>
+        <div
+          style={{
+            position: 'relative',
+            border: '1px solid var(--ui-kit-color-border)',
+            background: 'var(--ui-kit-color-surface)',
+            borderRadius: 6,
+            padding: 6,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 16,
+            width: '100%',
+            height: 240,
+            boxSizing: 'border-box'
+          }}
+        >
+          <VectorCanvas
+            ref={canvasRef}
+            width={320}
+            height={240}
+            style={{ width: 320, height: 240, display: 'block' }}
+            onShapesChange={() => refreshShapes()}
+            onSelectionChange={handleSelectionChange}
+            aria-label="Zone de dessin vectoriel"
+          />
+          {shapes.length === 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                pointerEvents: 'none'
+              }}
+            >
+              <Text
+                size="small"
+                tone="tertiary"
+                style={{
+                  color: 'var(--ui-kit-color-typography-tertiary)',
+                  textAlign: 'center'
+                }}
+              >
+                Click a shape below to add it to canvas
+              </Text>
+            </div>
+          )}
+        </div>
         <Text
           variant="bold"
           style={{
@@ -418,8 +408,6 @@ export default function App() {
         >
           Shapes
         </Text>
-
-        {/* Shape palette in two rows of four */}
         <div
           role="group"
           aria-label="Shape palette"
@@ -453,8 +441,6 @@ export default function App() {
             </button>
           ))}
         </div>
-
-        {/* Progressive disclosure: show combine actions only if shapes exist */}
         {shapes.length > 0 && (
           <div
             role="group"
@@ -504,8 +490,6 @@ export default function App() {
             </button>
           </div>
         )}
-
-        {/* Progressive disclosure: show layers panel only if shapes exist */}
         {shapes.length > 0 && (
           <section aria-labelledby="layers-title">
             <div id="layers-title" style={{ fontWeight: 600, fontSize: 13 }}>
@@ -593,7 +577,6 @@ export default function App() {
                         }}
                       />
                     </div>
-
                     <span
                       style={{
                         fontSize: 11,
@@ -605,7 +588,6 @@ export default function App() {
                     >
                       {s.type}
                     </span>
-
                     <div style={{ display: 'flex', gap: 2 }}>
                       <button
                         type="button"
@@ -706,8 +688,6 @@ export default function App() {
             </ul>
           </section>
         )}
-
-        {/* ...help section and live region remain always visible... */}
         <section
           aria-labelledby="help-shortcuts-heading"
           style={{
@@ -808,8 +788,6 @@ export default function App() {
             </div>
           )}
         </section>
-
-        {/* Add to design button at the bottom */}
         <div style={{ marginTop: 24 }}>
           <Button
             alignment="center"
@@ -823,7 +801,6 @@ export default function App() {
             Add to design
           </Button>
         </div>
-
         <div
           ref={liveRef}
           aria-live="polite"
