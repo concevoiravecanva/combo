@@ -22,6 +22,7 @@ import { Title, Text } from '@canva/app-ui-kit';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { messages } from './i18n/messages';
 import { ReloadIcon, UndoIcon, EyeIcon, XIcon } from "@canva/app-ui-kit";
+import { Rows, Columns, Column } from "@canva/app-ui-kit";
 
 type CombineOp = 'union' | 'subtract' | 'intersect' | 'exclude';
 
@@ -406,19 +407,47 @@ export default function App() {
           paddingRight: 4
         }}
       >
-        {/* Shape palette always visible */}
+        {/* Shapes label */}
+        <Text
+          variant="bold"
+          style={{
+            fontSize: 13,
+            marginBottom: 4,
+            color: 'var(--ui-kit-color-typography-primary)'
+          }}
+        >
+          Shapes
+        </Text>
+
+        {/* Shape palette in two rows of four */}
         <div
           role="group"
-          aria-label="Palette de formes"
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}
+          aria-label="Shape palette"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 8,
+            marginBottom: 8
+          }}
         >
           {SHAPES.map(s => (
             <button
               key={s.key}
               type="button"
-              aria-label={`Ajouter ${s.label}`}
+              aria-label={`Add ${s.label}`}
               onClick={() => handleAddShape(s.key)}
-              style={shapeBtnStyle}
+              style={{
+                ...shapeBtnStyle,
+                transition: 'background .15s, border-color .15s'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'var(--ui-kit-color-secondary-hover)';
+                e.currentTarget.style.borderColor = 'var(--ui-kit-color-secondary)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'var(--ui-kit-color-surface)';
+                e.currentTarget.style.borderColor = 'var(--ui-kit-color-border)';
+              }}
             >
               <s.Icon size={18} strokeWidth={1.8} aria-hidden="true" />
             </button>
