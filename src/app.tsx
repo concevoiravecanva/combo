@@ -18,7 +18,7 @@ import {
   ArrowDown
 } from 'lucide-react';
 import { addElementAtPoint } from '@canva/design'; 
-import { Title, Text } from '@canva/app-ui-kit';
+import { Title, Text, Button } from '@canva/app-ui-kit';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { messages } from './i18n/messages';
 import { ReloadIcon, UndoIcon, EyeIcon, XIcon } from "@canva/app-ui-kit";
@@ -808,6 +808,21 @@ export default function App() {
             </div>
           )}
         </section>
+
+        {/* Add to design button at the bottom */}
+        <div style={{ marginTop: 24 }}>
+          <Button
+            alignment="center"
+            ariaLabel="Add to design"
+            variant="primary"
+            stretch
+            loading={pushing}
+            disabled={shapes.length === 0 || pushing}
+            onClick={handlePushToCanva}
+          >
+            Add to design
+          </Button>
+        </div>
 
         <div
           ref={liveRef}
