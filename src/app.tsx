@@ -250,22 +250,59 @@ export default function App() {
         overflow: 'hidden'
       }}
     >
-      <a
-        href="#layers-panel"
+      {/* Canvas preview at the top */}
+      <div
         style={{
-          position: 'absolute',
-          left: -9999,
-          top: 8,
-          background: '#0047ff',
-          color: '#fff',
-          padding: '6px 10px',
-          borderRadius: 4
+          position: 'relative', // <-- Add this!
+          border: '1px solid var(--ui-kit-color-border)',
+          background: 'var(--ui-kit-color-surface)',
+          borderRadius: 6,
+          padding: 6,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center', // <-- Add this!
+          marginBottom: 16,
+          width: 320,
+          height: 240
         }}
-        onFocus={(e) => { e.currentTarget.style.left = '8px'; }}
-        onBlur={(e) => { e.currentTarget.style.left = '-9999px'; }}
       >
-        Skip to layers list
-      </a>
+        <VectorCanvas
+          ref={canvasRef}
+          width={320}
+          height={240}
+          style={{ width: 320, height: 240, display: 'block' }}
+          onShapesChange={() => refreshShapes()}
+          onSelectionChange={handleSelectionChange}
+          aria-label="Zone de dessin vectoriel"
+        />
+        {/* Empty state message */}
+        {shapes.length === 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: 320,
+              height: 240,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerEvents: 'none'
+            }}
+          >
+            <Text
+              size="small"
+              tone="tertiary"
+              style={{
+                color: 'var(--ui-kit-color-typography-tertiary)',
+                textAlign: 'center'
+              }}
+            >
+              Click a shape below to add it to canvas
+            </Text>
+          </div>
+        )}
+      </div>
 
       <div
         style={{
@@ -347,27 +384,6 @@ export default function App() {
           >
             <FormattedMessage {...messages.boolean_exclude} />
           </button>
-        </div>
-
-        <div
-            style={{
-              border: '1px solid var(--ui-kit-color-border)',
-              background: 'var(--ui-kit-color-surface)',
-              borderRadius: 6,
-              padding: 6,
-              display: 'flex',
-              justifyContent: 'center'
-            }}
-        >
-          <VectorCanvas
-            ref={canvasRef}
-            width={320}
-            height={240}
-            style={{ width: 320, height: 240, display: 'block' }}
-            onShapesChange={() => refreshShapes()}
-            onSelectionChange={handleSelectionChange}
-            aria-label="Zone de dessin vectoriel"
-          />
         </div>
 
         <div role="toolbar" aria-label="Actions globales" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
