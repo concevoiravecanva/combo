@@ -11,7 +11,6 @@ import {
   Star as IconStar,
   Trash2,
   Upload,
-  RotateCcw,
   RotateCw,      
   Eye,
   EyeOff,
@@ -22,6 +21,7 @@ import { addElementAtPoint } from '@canva/design';
 import { Title, Text } from '@canva/app-ui-kit';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { messages } from './i18n/messages';
+import { ReloadIcon, UndoIcon, EyeIcon, XIcon } from "@canva/app-ui-kit";
 
 type CombineOp = 'union' | 'subtract' | 'intersect' | 'exclude';
 
@@ -250,17 +250,103 @@ export default function App() {
         overflow: 'hidden'
       }}
     >
+      {/* Toolbar and Preview label above canvas */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 4,
+          maxWidth: 320
+        }}
+      >
+        <Text
+          variant="bold"
+          style={{
+            fontSize: 15,
+            color: 'var(--ui-kit-color-typography-primary)'
+          }}
+        >
+          Preview
+        </Text>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {/* Clear */}
+          <button
+            type="button"
+            onClick={handleClear}
+            title="Clear"
+            aria-label="Clear all shapes"
+            style={{
+              background: 'var(--ui-kit-color-tertiary)',
+              border: 'none',
+              borderRadius: 6,
+              padding: 6,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'var(--ui-kit-color-tertiary-fore)'
+            }}
+          >
+            <ReloadIcon size={18} aria-hidden="true" />
+          </button>
+          {/* Undo */}
+          <button
+            type="button"
+            onClick={handleUndo}
+            disabled={historyIndex <= 0}
+            aria-disabled={historyIndex <= 0}
+            title="Undo"
+            aria-label="Undo"
+            style={{
+              background: 'var(--ui-kit-color-tertiary)',
+              border: 'none',
+              borderRadius: 6,
+              padding: 6,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: historyIndex <= 0 ? 'not-allowed' : 'pointer',
+              color: 'var(--ui-kit-color-tertiary-fore)',
+              opacity: historyIndex <= 0 ? 0.5 : 1
+            }}
+          >
+            <UndoIcon size={18} aria-hidden="true" />
+          </button>
+          {/* Toggle handles */}
+          <button
+            type="button"
+            aria-pressed={handlesVisible}
+            onClick={toggleHandles}
+            title={handlesVisible ? 'Hide handles' : 'Show handles'}
+            aria-label={handlesVisible ? 'Hide Bezier handles' : 'Show Bezier handles'}
+            style={{
+              background: 'var(--ui-kit-color-tertiary)',
+              border: 'none',
+              borderRadius: 6,
+              padding: 6,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'var(--ui-kit-color-tertiary-fore)'
+            }}
+          >
+            {handlesVisible ? <EyeIcon size={18} aria-hidden="true" /> : <XIcon size={18} aria-hidden="true" />}
+          </button>
+        </div>
+      </div>
       {/* Canvas preview at the top */}
       <div
         style={{
-          position: 'relative', // <-- Add this!
+          position: 'relative',
           border: '1px solid var(--ui-kit-color-border)',
           background: 'var(--ui-kit-color-surface)',
           borderRadius: 6,
           padding: 6,
           display: 'flex',
           justifyContent: 'center',
-          alignItems: 'center', // <-- Add this!
+          alignItems: 'center',
           marginBottom: 16,
           width: 320,
           height: 240
@@ -383,44 +469,6 @@ export default function App() {
             style={comboBtnStyle(!canCombine())}
           >
             <FormattedMessage {...messages.boolean_exclude} />
-          </button>
-        </div>
-
-        <div role="toolbar" aria-label="Actions globales" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" onClick={handleClear} title="Effacer" aria-label="Effacer toutes les formes" style={iconBtnStyle(false)}>
-            <Trash2 size={18} aria-hidden="true" style={{ color: 'var(--ui-kit-color-critical)' }} />
-          </button>
-          <button
-            type="button"
-            onClick={handlePushToCanva}
-            disabled={pushing || shapes.length === 0}
-            aria-disabled={pushing || shapes.length === 0}
-            title="Envoyer vers Canva"
-            aria-label="Envoyer vers Canva"
-            style={iconBtnStyle(pushing || shapes.length === 0)}
-          >
-            <Upload size={18} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={handleUndo}
-            disabled={historyIndex <= 0}
-            aria-disabled={historyIndex <= 0}
-            title="Annuler"
-            aria-label="Annuler"
-            style={iconBtnStyle(historyIndex <= 0)}
-          >
-            <RotateCcw size={18} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            aria-pressed={handlesVisible}
-            onClick={toggleHandles}
-            title={handlesVisible ? 'Hide handles' : 'Show handles'}
-            aria-label={handlesVisible ? 'Hide Bezier handles' : 'Show Bezier handles'}
-            style={iconBtnStyle(false)}
-          >
-            {handlesVisible ? <Eye size={18} aria-hidden="true" style={{ color: 'var(--ui-kit-color-typography-primary)' }} /> : <EyeOff size={18} aria-hidden="true" />}
           </button>
         </div>
 
