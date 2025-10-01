@@ -251,12 +251,13 @@ export default function App() {
       aria-label="Vector editor"
       style={{
         width: '100%',
-        height: '100%',
+        height: '100vh', // Limite à la hauteur de la fenêtre
         margin: 0,
         padding: 12,
         fontFamily: 'sans-serif',
         boxSizing: 'border-box',
-        overflow: 'hidden'
+        overflowY: 'auto', // Ajoute le scroll vertical
+        overflowX: 'hidden'
       }}
     >
       <div
@@ -267,7 +268,7 @@ export default function App() {
           flexDirection: 'column',
           gap: 12,
           paddingBottom: 16,
-          overflowY: 'auto',
+          // overflowY: 'auto', // Tu peux retirer cette ligne ici
           overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
           paddingRight: 4
