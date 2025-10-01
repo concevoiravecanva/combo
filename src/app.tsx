@@ -449,65 +449,89 @@ export default function App() {
           ))}
         </div>
         {shapes.length > 0 && (
-          <div
-            role="group"
-            aria-label="Boolean operations"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: 10,
-              width: '100%'
-            }}
-          >
-            <Button
-              alignment="center"
-              ariaLabel={intl.formatMessage(messages.boolean_union)}
-              variant="secondary"
-              stretch
-              icon={() => <Unite size={18} />}
-              disabled={!canCombine()}
-              onClick={() => handleCombine('union')}
-              style={{ fontSize: 13 }}
+          <>
+            <div
+              style={{
+                fontWeight: 600,
+                fontSize: 13,
+                marginBottom: 4,
+                marginTop: 12
+              }}
             >
-              <FormattedMessage {...messages.boolean_union} />
-            </Button>
-            <Button
-              alignment="center"
-              ariaLabel={intl.formatMessage(messages.boolean_subtract)}
-              variant="secondary"
-              stretch
-              icon={() => <Subtract size={18} />}
-              disabled={!canCombine()}
-              onClick={() => handleCombine('subtract')}
-              style={{ fontSize: 13 }}
+              Actions
+            </div>
+            <div
+              role="group"
+              aria-label="Boolean operations"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: 10,
+                width: '100%'
+              }}
             >
-              <FormattedMessage {...messages.boolean_subtract} />
-            </Button>
-            <Button
-              alignment="center"
-              ariaLabel={intl.formatMessage(messages.boolean_intersect)}
-              variant="secondary"
-              stretch
-              icon={() => <Intersect size={18} />}
-              disabled={!canCombine()}
-              onClick={() => handleCombine('intersect')}
-              style={{ fontSize: 13 }}
+              <Button
+                alignment="center"
+                ariaLabel={intl.formatMessage(messages.boolean_union)}
+                variant="secondary"
+                stretch
+                icon={() => <Unite size={18} />}
+                disabled={!canCombine()}
+                onClick={() => handleCombine('union')}
+                style={{ fontSize: 13 }}
+              >
+                <FormattedMessage {...messages.boolean_union} />
+              </Button>
+              <Button
+                alignment="center"
+                ariaLabel={intl.formatMessage(messages.boolean_subtract)}
+                variant="secondary"
+                stretch
+                icon={() => <Subtract size={18} />}
+                disabled={!canCombine()}
+                onClick={() => handleCombine('subtract')}
+                style={{ fontSize: 13 }}
+              >
+                <FormattedMessage {...messages.boolean_subtract} />
+              </Button>
+              <Button
+                alignment="center"
+                ariaLabel={intl.formatMessage(messages.boolean_intersect)}
+                variant="secondary"
+                stretch
+                icon={() => <Intersect size={18} />}
+                disabled={!canCombine()}
+                onClick={() => handleCombine('intersect')}
+                style={{ fontSize: 13 }}
+              >
+                <FormattedMessage {...messages.boolean_intersect} />
+              </Button>
+              <Button
+                alignment="center"
+                ariaLabel={intl.formatMessage(messages.boolean_exclude)}
+                variant="secondary"
+                stretch
+                icon={() => <Exclude size={18} />}
+                disabled={!canCombine()}
+                onClick={() => handleCombine('exclude')}
+                style={{ fontSize: 13 }}
+              >
+                <FormattedMessage {...messages.boolean_exclude} />
+              </Button>
+            </div>
+            <Text
+              size="small"
+              tone="tertiary"
+              style={{
+                marginTop: 6,
+                marginBottom: 8,
+                color: 'var(--ui-kit-color-typography-tertiary)',
+                textAlign: 'center'
+              }}
             >
-              <FormattedMessage {...messages.boolean_intersect} />
-            </Button>
-            <Button
-              alignment="center"
-              ariaLabel={intl.formatMessage(messages.boolean_exclude)}
-              variant="secondary"
-              stretch
-              icon={() => <Exclude size={18} />}
-              disabled={!canCombine()}
-              onClick={() => handleCombine('exclude')}
-              style={{ fontSize: 13 }}
-            >
-              <FormattedMessage {...messages.boolean_exclude} />
-            </Button>
-          </div>
+              Select two shapes to apply an action
+            </Text>
+          </>
         )}
         {shapes.length > 0 && (
           <section aria-labelledby="layers-title">
