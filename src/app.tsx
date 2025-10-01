@@ -18,7 +18,7 @@ import {
   ArrowDown
 } from 'lucide-react';
 import { addElementAtPoint } from '@canva/design'; 
-import { Title, Text, Button } from '@canva/app-ui-kit';
+import { Title, Text, Button, Accordion, AccordionItem } from '@canva/app-ui-kit';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { messages } from './i18n/messages';
 import { ReloadIcon, UndoIcon, EyeIcon, XIcon, InfoIcon } from "@canva/app-ui-kit";
@@ -53,6 +53,7 @@ export default function App() {
   const [handlesVisible, setHandlesVisible] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false); 
   const [showHelpPanel, setShowHelpPanel] = useState(false);
+  const [layersOpen, setLayersOpen] = useState(false);
   const liveRef = useRef<HTMLDivElement|null>(null);
   const intl = useIntl();
 
@@ -533,203 +534,207 @@ export default function App() {
             </Text>
           </>
         )}
+        {/* Layers panel inside Accordion */}
         {shapes.length > 0 && (
-          <section aria-labelledby="layers-title">
-            <div id="layers-title" style={{ fontWeight: 600, fontSize: 13 }}>
-              <FormattedMessage {...messages.layers_heading} />
-            </div>
-            <ul
-              id="layers-panel"
-              role="list"
-              aria-label="Liste des calques"
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 6,
-                maxHeight: 180,
-                overflowY: 'auto',
-                border: '1px solid #eee',
-                padding: 6,
-                borderRadius: 6,
-                margin: 0,
-                listStyle: 'none'
-              }}
+          <Accordion>
+            <AccordionItem
+              title={intl.formatMessage(messages.layers_heading)}
+              isOpen={layersOpen}
+              onToggle={() => setLayersOpen(open => !open)}
             >
-              {shapes.map(s => {
-                const isSel = selected.some(sel => sel.id === s.id);
-                return (
-                  <li
-                    key={s.id}
-                    role="listitem"
-                    aria-selected={isSel}
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        canvasRef.current?.selectShapes?.([s.id]);
-                      }
-                    }}
-                    onClick={(e) => {
-                      if (e.shiftKey) {
-                        const alreadySelected = selected.map(sel => sel.id);
-                        let nextIds = alreadySelected.includes(s.id)
-                          ? alreadySelected.filter(id => id !== s.id)
-                          : [...alreadySelected, s.id];
-                        canvasRef.current?.selectShapes?.(nextIds);
-                      } else {
-                        canvasRef.current?.selectShapes?.([s.id]);
-                      }
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: '4px 6px',
-                      border: '1px solid ' + (isSel ? 'var(--ui-kit-color-primary)' : 'var(--ui-kit-color-border)'),
-                      background: isSel ? 'var(--ui-kit-color-primary-low)' : 'var(--ui-kit-color-surface)',
-                      color: isSel ? 'var(--ui-kit-color-primary-fore)' : 'var(--ui-kit-color-typography-primary)',
-                      borderRadius: 4,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <div
-                      style={{
-                        position: 'relative',
-                        width: 18,
-                        height: 18,
-                        borderRadius: '50%',
-                        border: '1px solid #444',
-                        background: s.fillColor || '#ff0000',
-                        flex: '0 0 18px'
+              <ul
+                id="layers-panel"
+                role="list"
+                aria-label="Liste des calques"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  maxHeight: 180,
+                  overflowY: 'auto',
+                  border: '1px solid #eee',
+                  padding: 6,
+                  borderRadius: 6,
+                  margin: 0,
+                  listStyle: 'none'
+                }}
+              >
+                {shapes.map(s => {
+                  const isSel = selected.some(sel => sel.id === s.id);
+                  return (
+                    <li
+                      key={s.id}
+                      role="listitem"
+                      aria-selected={isSel}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          canvasRef.current?.selectShapes?.([s.id]);
+                        }
                       }}
-                    >
-                      <input
-                        id={`clr-${s.id}`}
-                        aria-label={`Color of ${s.type}`}
-                        type="color"
-                        value={s.fillColor || '#ff0000'}
-                        onChange={(e) => {
-                          handleChangeLayerColor(s.id, e.target.value);
-                          announce('Color changed');
-                        }}
-                        style={{
-                          position: 'absolute',
-                          inset: 0,
-                          opacity: 0,
-                          cursor: 'pointer'
-                        }}
-                      />
-                    </div>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        flex: 1,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        color: 'var(--ui-kit-color-typography-primary)'
-                      }}
-                    >
-                      {s.type}
-                    </span>
-                    <div style={{ display: 'flex', gap: 2 }}>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'up'); refreshShapes(false); announce('Layer moved up'); }}
-                        title="Move up"
-                        aria-label="Move layer up"
-                        style={layerOrderBtnStyle}
-                      >
-                        <ArrowUp size={14} aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'down'); refreshShapes(false); announce('Layer moved down'); }}
-                        title="Move down"
-                        aria-label="Move layer down"
-                        style={layerOrderBtnStyle}
-                      >
-                        <ArrowDown size={14} aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        onMouseDown={(e) => {
-                          e.stopPropagation();
-                          const rotateOnce = () => {
-                            canvasRef.current?.rotateShape?.(s.id, 10);
-                            refreshShapes(false);
-                            announce(intl.formatMessage(messages.rotate_announce));
-                          };
-                          rotateOnce();
-                          const intervalId = window.setInterval(rotateOnce, 120);
-                          const stop = () => {
-                            clearInterval(intervalId);
-                            window.removeEventListener('mouseup', stop);
-                            window.removeEventListener('touchend', stop);
-                          };
-                          window.addEventListener('mouseup', stop);
-                          window.addEventListener('touchend', stop);
-                        }}
-                        onTouchStart={(e) => {
-                          e.stopPropagation();
-                          const rotateOnce = () => {
-                            canvasRef.current?.rotateShape?.(s.id, 10);
-                            refreshShapes(false);
-                            announce(intl.formatMessage(messages.rotate_announce));
-                          };
-                          rotateOnce();
-                          const intervalId = window.setInterval(rotateOnce, 120);
-                          const stop = () => {
-                            clearInterval(intervalId);
-                            window.removeEventListener('touchend', stop);
-                            window.removeEventListener('mouseup', stop);
-                          };
-                          window.addEventListener('touchend', stop);
-                          window.addEventListener('mouseup', stop);
-                        }}
-                        title="Rotate right 10°"
-                        aria-label="Rotate right 10 degrees"
-                        style={layerOrderBtnStyle}
-                      >
-                        <RotateCw size={14} aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 1.1); refreshShapes(false); announce('Scaled up'); }}
-                        title="Scale up"
-                        aria-label="Scale up 10 percent"
-                        style={layerOrderBtnStyle}
-                      >
-                        +
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 0.9); refreshShapes(false); announce('Scaled down'); }}
-                        title="Scale down"
-                        aria-label="Scale down 10 percent"
-                        style={layerOrderBtnStyle}
-                      >
-                        –
-                      </button>
-                    </div>
-                    <button
-                      type="button"
                       onClick={(e) => {
-                        e.stopPropagation();
-                        canvasRef.current?.deleteShape?.(s.id);
-                        refreshShapes();
-                        announce('Shape deleted');
+                        if (e.shiftKey) {
+                          const alreadySelected = selected.map(sel => sel.id);
+                          let nextIds = alreadySelected.includes(s.id)
+                            ? alreadySelected.filter(id => id !== s.id)
+                            : [...alreadySelected, s.id];
+                          canvasRef.current?.selectShapes?.(nextIds);
+                        } else {
+                          canvasRef.current?.selectShapes?.([s.id]);
+                        }
                       }}
-                      style={deleteBtnStyle}
-                      title="Delete"
-                      aria-label="Delete this shape"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '4px 6px',
+                        border: '1px solid ' + (isSel ? 'var(--ui-kit-color-primary)' : 'var(--ui-kit-color-border)'),
+                        background: isSel ? 'var(--ui-kit-color-primary-low)' : 'var(--ui-kit-color-surface)',
+                        color: isSel ? 'var(--ui-kit-color-primary-fore)' : 'var(--ui-kit-color-typography-primary)',
+                        borderRadius: 4,
+                        cursor: 'pointer'
+                      }}
                     >
-                      ✕
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
+                      <div
+                        style={{
+                          position: 'relative',
+                          width: 18,
+                          height: 18,
+                          borderRadius: '50%',
+                          border: '1px solid #444',
+                          background: s.fillColor || '#ff0000',
+                          flex: '0 0 18px'
+                        }}
+                      >
+                        <input
+                          id={`clr-${s.id}`}
+                          aria-label={`Color of ${s.type}`}
+                          type="color"
+                          value={s.fillColor || '#ff0000'}
+                          onChange={(e) => {
+                            handleChangeLayerColor(s.id, e.target.value);
+                            announce('Color changed');
+                          }}
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            opacity: 0,
+                            cursor: 'pointer'
+                          }}
+                        />
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          flex: 1,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          color: 'var(--ui-kit-color-typography-primary)'
+                        }}
+                      >
+                        {s.type}
+                      </span>
+                      <div style={{ display: 'flex', gap: 2 }}>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'up'); refreshShapes(false); announce('Layer moved up'); }}
+                          title="Move up"
+                          aria-label="Move layer up"
+                          style={layerOrderBtnStyle}
+                        >
+                          <ArrowUp size={14} aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); canvasRef.current?.moveLayer?.(s.id, 'down'); refreshShapes(false); announce('Layer moved down'); }}
+                          title="Move down"
+                          aria-label="Move layer down"
+                          style={layerOrderBtnStyle}
+                        >
+                          <ArrowDown size={14} aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            const rotateOnce = () => {
+                              canvasRef.current?.rotateShape?.(s.id, 10);
+                              refreshShapes(false);
+                              announce(intl.formatMessage(messages.rotate_announce));
+                            };
+                            rotateOnce();
+                            const intervalId = window.setInterval(rotateOnce, 120);
+                            const stop = () => {
+                              clearInterval(intervalId);
+                              window.removeEventListener('mouseup', stop);
+                              window.removeEventListener('touchend', stop);
+                            };
+                            window.addEventListener('mouseup', stop);
+                            window.addEventListener('touchend', stop);
+                          }}
+                          onTouchStart={(e) => {
+                            e.stopPropagation();
+                            const rotateOnce = () => {
+                              canvasRef.current?.rotateShape?.(s.id, 10);
+                              refreshShapes(false);
+                              announce(intl.formatMessage(messages.rotate_announce));
+                            };
+                            rotateOnce();
+                            const intervalId = window.setInterval(rotateOnce, 120);
+                            const stop = () => {
+                              clearInterval(intervalId);
+                              window.removeEventListener('touchend', stop);
+                              window.removeEventListener('mouseup', stop);
+                            };
+                            window.addEventListener('touchend', stop);
+                            window.addEventListener('mouseup', stop);
+                          }}
+                          title="Rotate right 10°"
+                          aria-label="Rotate right 10 degrees"
+                          style={layerOrderBtnStyle}
+                        >
+                          <RotateCw size={14} aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 1.1); refreshShapes(false); announce('Scaled up'); }}
+                          title="Scale up"
+                          aria-label="Scale up 10 percent"
+                          style={layerOrderBtnStyle}
+                        >
+                          +
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); canvasRef.current?.scaleShapes?.([s.id], 0.9); refreshShapes(false); announce('Scaled down'); }}
+                          title="Scale down"
+                          aria-label="Scale down 10 percent"
+                          style={layerOrderBtnStyle}
+                        >
+                          –
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          canvasRef.current?.deleteShape?.(s.id);
+                          refreshShapes();
+                          announce('Shape deleted');
+                        }}
+                        style={deleteBtnStyle}
+                        title="Delete"
+                        aria-label="Delete this shape"
+                      >
+                        ✕
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </AccordionItem>
+          </Accordion>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 24 }}>
           <Button
