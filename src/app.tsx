@@ -23,6 +23,12 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { messages } from './i18n/messages';
 import { ReloadIcon, UndoIcon, EyeIcon, XIcon, InfoIcon } from "@canva/app-ui-kit";
 import { Rows, Columns, Column } from "@canva/app-ui-kit";
+import {
+  Exclude,
+  Intersect,
+  Subtract,
+  Unite
+} from "@phosphor-icons/react";
 
 type CombineOp = 'union' | 'subtract' | 'intersect' | 'exclude';
 
@@ -453,42 +459,54 @@ export default function App() {
               width: '100%'
             }}
           >
-            <button
-              type="button"
-              aria-disabled={!canCombine()}
+            <Button
+              alignment="center"
+              ariaLabel={intl.formatMessage(messages.boolean_union)}
+              variant="secondary"
+              stretch
+              icon={() => <Unite size={18} />}
               disabled={!canCombine()}
               onClick={() => handleCombine('union')}
-              style={comboBtnStyle(!canCombine())}
+              style={{ fontSize: 13 }}
             >
               <FormattedMessage {...messages.boolean_union} />
-            </button>
-            <button
-              type="button"
-              aria-disabled={!canCombine()}
+            </Button>
+            <Button
+              alignment="center"
+              ariaLabel={intl.formatMessage(messages.boolean_subtract)}
+              variant="secondary"
+              stretch
+              icon={() => <Subtract size={18} />}
               disabled={!canCombine()}
               onClick={() => handleCombine('subtract')}
-              style={comboBtnStyle(!canCombine())}
+              style={{ fontSize: 13 }}
             >
               <FormattedMessage {...messages.boolean_subtract} />
-            </button>
-            <button
-              type="button"
-              aria-disabled={!canCombine()}
+            </Button>
+            <Button
+              alignment="center"
+              ariaLabel={intl.formatMessage(messages.boolean_intersect)}
+              variant="secondary"
+              stretch
+              icon={() => <Intersect size={18} />}
               disabled={!canCombine()}
               onClick={() => handleCombine('intersect')}
-              style={comboBtnStyle(!canCombine())}
+              style={{ fontSize: 13 }}
             >
               <FormattedMessage {...messages.boolean_intersect} />
-            </button>
-            <button
-              type="button"
-              aria-disabled={!canCombine()}
+            </Button>
+            <Button
+              alignment="center"
+              ariaLabel={intl.formatMessage(messages.boolean_exclude)}
+              variant="secondary"
+              stretch
+              icon={() => <Exclude size={18} />}
               disabled={!canCombine()}
               onClick={() => handleCombine('exclude')}
-              style={comboBtnStyle(!canCombine())}
+              style={{ fontSize: 13 }}
             >
               <FormattedMessage {...messages.boolean_exclude} />
-            </button>
+            </Button>
           </div>
         )}
         {shapes.length > 0 && (
