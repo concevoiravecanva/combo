@@ -21,7 +21,7 @@ import { addElementAtPoint } from '@canva/design';
 import { Title, Text, Button } from '@canva/app-ui-kit';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { messages } from './i18n/messages';
-import { ReloadIcon, UndoIcon, EyeIcon, XIcon } from "@canva/app-ui-kit";
+import { ReloadIcon, UndoIcon, EyeIcon, XIcon, InfoIcon } from "@canva/app-ui-kit";
 import { Rows, Columns, Column } from "@canva/app-ui-kit";
 
 type CombineOp = 'union' | 'subtract' | 'intersect' | 'exclude';
@@ -46,6 +46,7 @@ export default function App() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [handlesVisible, setHandlesVisible] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false); 
+  const [showHelpPanel, setShowHelpPanel] = useState(false);
   const liveRef = useRef<HTMLDivElement|null>(null);
   const intl = useIntl();
 
@@ -688,57 +689,83 @@ export default function App() {
             </ul>
           </section>
         )}
-        <section
-          aria-labelledby="help-shortcuts-heading"
-          style={{
-            marginTop: 16,
-            border: '1px solid var(--ui-kit-color-border)',
-            borderRadius: 6,
-            background: 'var(--ui-kit-color-surface)',
-            fontSize: 12,
-            color: 'var(--ui-kit-color-typography-primary)',
-            overflow: 'hidden',
-            maxHeight: 220
-          }}
-        >
-          <button
-            type="button"
-            id="help-shortcuts-button"
-            onClick={() => setHelpOpen(o => !o)}
-            aria-expanded={helpOpen}
-            aria-controls="help-shortcuts-panel"
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 24 }}>
+          <Button
+            alignment="center"
+            ariaLabel="Add to design"
+            variant="primary"
+            stretch
+            loading={pushing}
+            disabled={shapes.length === 0 || pushing}
+            onClick={handlePushToCanva}
+          >
+            Add to design
+          </Button>
+          <Button
+            alignment="center"
+            ariaLabel="Help"
+            variant="secondary"
+            stretch
+            icon={InfoIcon}
+            onClick={() => setShowHelpPanel(true)}
+          >
+            Help
+          </Button>
+        </div>
+
+        {showHelpPanel && (
+          <div
+            role="dialog"
+            aria-modal="true"
             style={{
-              all: 'unset',
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              background: 'rgba(0,0,0,0.32)',
+              zIndex: 1000,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'flex-start',
-              width: '100%',
-              cursor: 'pointer',
-              padding: '8px 10px',
-              fontWeight: 600,
-              background: 'var(--ui-kit-color-surface)',
-              color: 'var(--ui-kit-color-typography-primary)'
+              justifyContent: 'center'
             }}
-            title="Open help"
+            onClick={() => setShowHelpPanel(false)}
           >
-            <span id="help-shortcuts-heading">
-              <FormattedMessage {...messages.help_heading} />
-            </span>
-          </button>
-          {helpOpen && (
             <div
-              id="help-shortcuts-panel"
-              role="region"
-              aria-labelledby="help-shortcuts-heading"
               style={{
-                padding: '8px 12px 28px',
-                lineHeight: 1.4,
-                maxHeight: 180,
-                overflowY: 'auto',
                 background: 'var(--ui-kit-color-surface)',
-                color: 'var(--ui-kit-color-typography-primary)'
+                color: 'var(--ui-kit-color-typography-primary)',
+                borderRadius: 10,
+                boxShadow: '0 4px 32px rgba(0,0,0,0.18)',
+                maxWidth: 420,
+                width: '90vw',
+                maxHeight: '80vh',
+                overflowY: 'auto',
+                padding: 24,
+                position: 'relative'
               }}
+              onClick={e => e.stopPropagation()}
             >
+              <button
+                type="button"
+                aria-label="Close help"
+                onClick={() => setShowHelpPanel(false)}
+                style={{
+                  position: 'absolute',
+                  top: 12,
+                  right: 12,
+                  background: 'none',
+                  border: 'none',
+                  fontSize: 22,
+                  color: 'var(--ui-kit-color-typography-primary)',
+                  cursor: 'pointer'
+                }}
+              >
+                ×
+              </button>
+              <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 8 }}>
+                <FormattedMessage {...messages.help_heading} />
+              </div>
               <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>
                 <FormattedMessage {...messages.help_how_title} />
               </div>
@@ -786,21 +813,9 @@ export default function App() {
               </ul>
               <div style={{ height: 12 }} />
             </div>
-          )}
-        </section>
-        <div style={{ marginTop: 24 }}>
-          <Button
-            alignment="center"
-            ariaLabel="Add to design"
-            variant="primary"
-            stretch
-            loading={pushing}
-            disabled={shapes.length === 0 || pushing}
-            onClick={handlePushToCanva}
-          >
-            Add to design
-          </Button>
-        </div>
+          </div>
+        )}
+
         <div
           ref={liveRef}
           aria-live="polite"
