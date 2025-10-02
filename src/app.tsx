@@ -18,7 +18,7 @@ import {
   ArrowDown
 } from 'lucide-react';
 import { addElementAtPoint } from '@canva/design'; 
-import { Title, Text, Button, Accordion, AccordionItem } from '@canva/app-ui-kit';
+import { Title, Text, Button, Accordion, AccordionItem, Swatch, ColorSelector } from '@canva/app-ui-kit';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { messages } from './i18n/messages';
 import { ReloadIcon, UndoIcon, EyeIcon, XIcon, InfoIcon } from "@canva/app-ui-kit";
@@ -29,6 +29,7 @@ import {
   Subtract,
   Unite
 } from "@phosphor-icons/react";
+import { RotateIcon, TrashIcon, ArrowUpIcon, ArrowDownIcon } from '@canva/app-ui-kit';
 
 type CombineOp = 'union' | 'subtract' | 'intersect' | 'exclude';
 
@@ -54,6 +55,7 @@ export default function App() {
   const [helpOpen, setHelpOpen] = useState(false); 
   const [showHelpPanel, setShowHelpPanel] = useState(false);
   const [layersOpen, setLayersOpen] = useState(false);
+  const [colorSelectorOpenId, setColorSelectorOpenId] = useState<string | null>(null);
   const liveRef = useRef<HTMLDivElement|null>(null);
   const intl = useIntl();
 
@@ -562,170 +564,116 @@ export default function App() {
                 {shapes.map(s => {
                   const isSel = selected.some(sel => sel.id === s.id);
                   const ShapeIcon = SHAPES.find(shape => shape.key === s.type)?.Icon;
+
                   return (
                     <div key={s.id} style={{ width: '100%' }}>
                       <Button
                         alignment="center"
-                        variant={isSel ? "primary" : "secondary"}
+                        variant="secondary"
                         stretch
                         ariaLabel={`Select ${s.type}`}
+                        selected={isSel}
+                        icon={ShapeIcon ? () => (
+                          <ShapeIcon
+                            size={18}
+                            strokeWidth={1.8}
+                            aria-hidden="true"
+                            style={{
+                              color: isSel
+                                ? 'var(--ui-kit-color-primary)'
+                                : 'var(--ui-kit-color-typography-primary)'
+                            }}
+                          />
+                        ) : undefined}
                         onClick={() => {
                           canvasRef.current?.selectShapes?.([s.id]);
                         }}
                         style={{
-                          display: 'flex',
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 8,
+                          fontWeight: 500,
                           fontSize: 13,
-                          marginBottom: 2,
-                          background: isSel ? 'var(--ui-kit-color-primary-low)' : undefined,
-                          padding: '8px 0'
+                          marginBottom: 2
                         }}
                       >
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 8
-                          }}
-                        >
-                          {ShapeIcon && (
-                            <ShapeIcon
-                              size={18}
-                              strokeWidth={1.8}
-                              aria-hidden="true"
-                              style={{
-                                color: isSel ? 'var(--ui-kit-color-primary-fore)' : 'var(--ui-kit-color-typography-primary)'
-                              }}
-                            />
-                          )}
-                          <span
-                            style={{
-                              fontWeight: 500,
-                              color: isSel ? 'var(--ui-kit-color-primary-fore)' : 'var(--ui-kit-color-typography-primary)',
-                              textAlign: 'center'
-                            }}
-                          >
-                            {SHAPES.find(shape => shape.key === s.type)?.label || s.type}
-                          </span>
-                        </span>
+                        {SHAPES.find(shape => shape.key === s.type)?.label || s.type}
                       </Button>
                       {isSel && (
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          margin: '6px 0 10px 0',
-                          paddingLeft: 4
-                        }}>
-                          <input
-                            id={`clr-${s.id}`}
-                            aria-label={`Color of ${s.type}`}
-                            type="color"
-                            value={s.fillColor || '#ff0000'}
-                            onChange={(e) => {
-                              handleChangeLayerColor(s.id, e.target.value);
-                              announce('Color changed');
-                            }}
-                            style={{
-                              width: 24,
-                              height: 24,
-                              border: 'none',
-                              background: 'none',
-                              cursor: 'pointer'
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0 10px 0', paddingLeft: 4 }}>
+                          {/* Swatch and ColorSelector */}
+                          <div style={{ position: 'relative' }}>
+                            <Swatch
+                              fill={[s.fillColor || '#ff0000']}
+                              onClick={() => setColorSelectorOpenId(s.id)}
+                              variant="solid"
+                              ariaLabel={`Change color of ${s.type}`}
+                            />
+                            {colorSelectorOpenId === s.id && (
+                              <div style={{
+                                position: 'absolute',
+                                zIndex: 10,
+                                top: 32,
+                                left: 0
+                              }}>
+                                <ColorSelector
+                                  color={s.fillColor || '#ff0000'}
+                                  onChange={color => {
+                                    handleChangeLayerColor(s.id, color);
+                                    setColorSelectorOpenId(null);
+                                  }}
+                                  triggerMode="swatch"
+                                  onClose={() => setColorSelectorOpenId(null)}
+                                />
+                              </div>
+                            )}
+                          </div>
+                          {/* Layer controls as small tertiary icon buttons */}
+                          <Button
+                            ariaLabel="Move layer up"
+                            icon={ArrowUpIcon}
+                            size="small"
+                            type="button"
+                            variant="tertiary"
+                            onClick={() => {
+                              canvasRef.current?.moveLayer?.(s.id, 'up');
+                              refreshShapes(false);
+                              announce('Layer moved up');
                             }}
                           />
-                          <button
+                          <Button
+                            ariaLabel="Move layer down"
+                            icon={ArrowDownIcon}
+                            size="small"
                             type="button"
-                            onClick={() => { canvasRef.current?.moveLayer?.(s.id, 'up'); refreshShapes(false); announce('Layer moved up'); }}
-                            title="Move up"
-                            aria-label="Move layer up"
-                            style={layerOrderBtnStyle}
-                          >
-                            <ArrowUp size={14} aria-hidden="true" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => { canvasRef.current?.moveLayer?.(s.id, 'down'); refreshShapes(false); announce('Layer moved down'); }}
-                            title="Move down"
-                            aria-label="Move layer down"
-                            style={layerOrderBtnStyle}
-                          >
-                            <ArrowDown size={14} aria-hidden="true" />
-                          </button>
-                          <button
-                            type="button"
-                            onMouseDown={() => {
-                              const rotateOnce = () => {
-                                canvasRef.current?.rotateShape?.(s.id, 10);
-                                refreshShapes(false);
-                                announce(intl.formatMessage(messages.rotate_announce));
-                              };
-                              rotateOnce();
-                              const intervalId = window.setInterval(rotateOnce, 120);
-                              const stop = () => {
-                                clearInterval(intervalId);
-                                window.removeEventListener('mouseup', stop);
-                                window.removeEventListener('touchend', stop);
-                              };
-                              window.addEventListener('mouseup', stop);
-                              window.addEventListener('touchend', stop);
+                            variant="tertiary"
+                            onClick={() => {
+                              canvasRef.current?.moveLayer?.(s.id, 'down');
+                              refreshShapes(false);
+                              announce('Layer moved down');
                             }}
-                            onTouchStart={() => {
-                              const rotateOnce = () => {
-                                canvasRef.current?.rotateShape?.(s.id, 10);
-                                refreshShapes(false);
-                                announce(intl.formatMessage(messages.rotate_announce));
-                              };
-                              rotateOnce();
-                              const intervalId = window.setInterval(rotateOnce, 120);
-                              const stop = () => {
-                                clearInterval(intervalId);
-                                window.removeEventListener('touchend', stop);
-                                window.removeEventListener('mouseup', stop);
-                              };
-                              window.addEventListener('touchend', stop);
-                              window.addEventListener('mouseup', stop);
+                          />
+                          <Button
+                            ariaLabel="Rotate right 10 degrees"
+                            icon={RotateIcon}
+                            size="small"
+                            type="button"
+                            variant="tertiary"
+                            onClick={() => {
+                              canvasRef.current?.rotateShape?.(s.id, 10);
+                              refreshShapes(false);
+                              announce(intl.formatMessage(messages.rotate_announce));
                             }}
-                            title="Rotate right 10°"
-                            aria-label="Rotate right 10 degrees"
-                            style={layerOrderBtnStyle}
-                          >
-                            <RotateCw size={14} aria-hidden="true" />
-                          </button>
-                          <button
+                          />
+                          <Button
+                            ariaLabel="Delete this shape"
+                            icon={TrashIcon}
+                            size="small"
                             type="button"
-                            onClick={() => { canvasRef.current?.scaleShapes?.([s.id], 1.1); refreshShapes(false); announce('Scaled up'); }}
-                            title="Scale up"
-                            aria-label="Scale up 10 percent"
-                            style={layerOrderBtnStyle}
-                          >
-                            +
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => { canvasRef.current?.scaleShapes?.([s.id], 0.9); refreshShapes(false); announce('Scaled down'); }}
-                            title="Scale down"
-                            aria-label="Scale down 10 percent"
-                            style={layerOrderBtnStyle}
-                          >
-                            –
-                          </button>
-                          <button
-                            type="button"
+                            variant="tertiary"
                             onClick={() => {
                               canvasRef.current?.deleteShape?.(s.id);
                               refreshShapes();
                               announce('Shape deleted');
                             }}
-                            style={deleteBtnStyle}
-                            title="Delete"
-                            aria-label="Delete this shape"
-                          >
-                            ✕
-                          </button>
+                          />
                         </div>
                       )}
                     </div>
