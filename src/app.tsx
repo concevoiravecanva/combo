@@ -30,6 +30,7 @@ import {
   Unite
 } from "@phosphor-icons/react";
 import { RotateIcon, TrashIcon, ArrowUpIcon, ArrowDownIcon } from '@canva/app-ui-kit';
+import { PlusIcon, MinusIcon } from '@canva/app-ui-kit';
 
 type CombineOp = 'union' | 'subtract' | 'intersect' | 'exclude';
 
@@ -598,33 +599,13 @@ export default function App() {
                       </Button>
                       {isSel && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0 10px 0', paddingLeft: 4 }}>
-                          {/* Swatch and ColorSelector */}
-                          <div style={{ position: 'relative' }}>
-                            <Swatch
-                              fill={[s.fillColor || '#ff0000']}
-                              onClick={() => setColorSelectorOpenId(s.id)}
-                              variant="solid"
-                              ariaLabel={`Change color of ${s.type}`}
-                            />
-                            {colorSelectorOpenId === s.id && (
-                              <div style={{
-                                position: 'absolute',
-                                zIndex: 10,
-                                top: 32,
-                                left: 0
-                              }}>
-                                <ColorSelector
-                                  color={s.fillColor || '#ff0000'}
-                                  onChange={color => {
-                                    handleChangeLayerColor(s.id, color);
-                                    setColorSelectorOpenId(null);
-                                  }}
-                                  triggerMode="swatch"
-                                  onClose={() => setColorSelectorOpenId(null)}
-                                />
-                              </div>
-                            )}
-                          </div>
+                          {/* Remplace tout le bloc Swatch + ColorSelector par ceci */}
+                          <ColorSelector
+                            color={s.fillColor || '#ff0000'}
+                            onChange={color => handleChangeLayerColor(s.id, color)}
+                            triggerMode="swatch"
+                            size="small"
+                          />
                           {/* Layer controls as small tertiary icon buttons */}
                           <Button
                             ariaLabel="Move layer up"
@@ -660,6 +641,30 @@ export default function App() {
                               canvasRef.current?.rotateShape?.(s.id, 10);
                               refreshShapes(false);
                               announce(intl.formatMessage(messages.rotate_announce));
+                            }}
+                          />
+                          <Button
+                            ariaLabel="Scale up 10 percent"
+                            icon={PlusIcon}
+                            size="small"
+                            type="button"
+                            variant="tertiary"
+                            onClick={() => {
+                              canvasRef.current?.scaleShapes?.([s.id], 1.1);
+                              refreshShapes(false);
+                              announce('Scaled up');
+                            }}
+                          />
+                          <Button
+                            ariaLabel="Scale down 10 percent"
+                            icon={MinusIcon}
+                            size="small"
+                            type="button"
+                            variant="tertiary"
+                            onClick={() => {
+                              canvasRef.current?.scaleShapes?.([s.id], 0.9);
+                              refreshShapes(false);
+                              announce('Scaled down');
                             }}
                           />
                           <Button
