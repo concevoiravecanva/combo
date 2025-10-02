@@ -7,22 +7,39 @@ function ShortcutBox({ keys }: { keys: string[] }) {
     <span
       style={{
         display: "inline-flex",
-        gap: 4,
-        background: "#F3F4F6",
-        borderRadius: 6,
-        padding: "2px 8px",
-        fontFamily: "var(--ui-kit-typography-font-family-monospace)",
-        fontSize: 13,
-        color: "var(--ui-kit-color-typography-primary)",
-        marginLeft: 6,
-        verticalAlign: "middle"
+        flexWrap: "wrap",
+        gap: 4, // réduit (avant: 8)
+        marginLeft: 8,
+        verticalAlign: "middle",
       }}
     >
-      {keys.map((key, i) => (
-        <span key={i} style={{ padding: "0 2px" }}>
-          {key}
-        </span>
-      ))}
+      {keys.map((variant, i) => {
+        const parts = variant.split("+");
+        return (
+          <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4 /* réduit (avant: 6) */ }}>
+            {parts.map((p, j) => (
+              <span
+                key={j}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "2px 5px", // légèrement réduit (avant: 2px 6px)
+                  background: "#F3F4F6",
+                  border: "1px solid var(--ui-kit-color-border)",
+                  borderRadius: 6,
+                  fontFamily: "var(--ui-kit-typography-font-family-monospace)",
+                  fontSize: 13,
+                  lineHeight: 1.2,
+                  color: "var(--ui-kit-color-typography-primary)",
+                }}
+              >
+                {p}
+              </span>
+            ))}
+          </span>
+        );
+      })}
     </span>
   );
 }
@@ -79,14 +96,13 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
           width: "100%",
           maxWidth: 420,
           margin: "0 auto",
-          padding: "24px 16px 0 16px",
+          padding: "24px 16px 40px 16px", // ajouté du padding-bottom pour aérer le bas
           background: "var(--ui-kit-color-surface)",
           color: "var(--ui-kit-color-typography-primary)",
           fontFamily: "var(--ui-kit-typography-font-family-body)",
           overflowY: "auto",
           overflowX: "hidden",
           boxSizing: "border-box"
-          // removed marginRight: 24
         }}
       >
         <div
@@ -199,64 +215,67 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
           Keyboard shortcuts
         </div>
         <ul style={{ margin: "0 0 8px", paddingLeft: 16 }}>
-          <li>
+          <li style={{ marginBottom: 8 }}>
             <Text>
               <b>Add to design:</b>
               <ShortcutBox keys={["Enter"]} />
             </Text>
           </li>
-          <li>
+          <li style={{ marginBottom: 8 }}>
             <Text>
               <b>Delete selection:</b>
+              {/* espace clair entre Delete et Backspace */}
               <ShortcutBox keys={["Delete", "Backspace"]} />
             </Text>
           </li>
-          <li>
+          <li style={{ marginBottom: 8 }}>
             <Text>
               <b>Add shape:</b>
               <ShortcutBox keys={["1", "2", "3", "4", "5", "6", "7", "8"]} />
             </Text>
           </li>
-          <li>
+          <li style={{ marginBottom: 8 }}>
             <Text>
               <b>Scale up:</b>
               <ShortcutBox keys={["/"]} />
             </Text>
           </li>
-          <li>
+          <li style={{ marginBottom: 8 }}>
             <Text>
               <b>Scale down:</b>
               <ShortcutBox keys={["-"]} />
             </Text>
           </li>
-          <li>
+          <li style={{ marginBottom: 8 }}>
             <Text>
               <b>Arrange up:</b>
               <ShortcutBox keys={["]"]} />
             </Text>
           </li>
-          <li>
+          <li style={{ marginBottom: 8 }}>
             <Text>
               <b>Arrange down:</b>
               <ShortcutBox keys={["["]} />
             </Text>
           </li>
-          <li>
+          <li style={{ marginBottom: 8 }}>
             <Text>
               <b>Undo:</b>
-              <ShortcutBox keys={["Cmd", "Ctrl", "Z"]} />
+              {/* deux alternatives bien séparées, avec espaces dans le combo */}
+              <ShortcutBox keys={["Cmd+Z", "Ctrl+Z"]} />
             </Text>
           </li>
-          <li>
+          <li style={{ marginBottom: 8 }}>
             <Text>
               <b>Select / multi-select:</b>
+              {/* alternatives claires, combo avec espace autour de + */}
               <ShortcutBox keys={["Click", "Shift+Click"]} />
             </Text>
           </li>
         </ul>
         <div>
           <Alert tone="info" style={{ marginTop: 24 }}>
-            These keyboard shortcuts only work when the app is active.
+            These keyboard shortcuts only work when the app is active. On the canvas editor, Canva's native keyboard shortcuts apply.
           </Alert>
         </div>
       </div>
