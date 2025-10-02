@@ -96,3 +96,7 @@ h1, h2, h3, [data-canva-title] {
   font-family: "Canva Sans Display", "Canva Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: var(--ui-kit-color-typography-primary);
 }
+
+body {
+  overflow-x: hidden !important;
+}
