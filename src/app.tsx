@@ -31,6 +31,7 @@ import {
 } from "@phosphor-icons/react";
 import { RotateIcon, TrashIcon, ArrowUpIcon, ArrowDownIcon } from '@canva/app-ui-kit';
 import { PlusIcon, MinusIcon } from '@canva/app-ui-kit';
+import HelpPage from './HelpPage';
 
 type CombineOp = 'union' | 'subtract' | 'intersect' | 'exclude';
 
@@ -249,589 +250,490 @@ export default function App() {
   }, []);
 
   return (
-    <main
-      role="main"
-      aria-label="Vector editor"
-      style={{
-        width: '100%',
-        height: '100vh', // Limite à la hauteur de la fenêtre
-        margin: 0,
-        padding: 12,
-        fontFamily: 'sans-serif',
-        boxSizing: 'border-box',
-        overflowY: 'auto', // Ajoute le scroll vertical
-        overflowX: 'hidden'
-      }}
-    >
-      <div
+    showHelpPanel ? (
+      <HelpPage onBack={() => setShowHelpPanel(false)} />
+    ) : (
+      <main
+        role="main"
+        aria-label="Vector editor"
         style={{
-          maxWidth: 360,
-          margin: '0 auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-          paddingBottom: 16,
-          // overflowY: 'auto', // Tu peux retirer cette ligne ici
-          overflowX: 'hidden',
-          WebkitOverflowScrolling: 'touch',
-          paddingRight: 4
+          width: '100%',
+          height: '100vh', // Limite à la hauteur de la fenêtre
+          margin: 0,
+          padding: 12,
+          fontFamily: 'sans-serif',
+          boxSizing: 'border-box',
+          overflowY: 'auto', // Ajoute le scroll vertical
+          overflowX: 'hidden'
         }}
       >
         <div
           style={{
+            maxWidth: 360,
+            margin: '0 auto',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 4
+            flexDirection: 'column',
+            gap: 12,
+            paddingBottom: 16,
+            // overflowY: 'auto', // Tu peux retirer cette ligne ici
+            overflowX: 'hidden',
+            WebkitOverflowScrolling: 'touch',
+            paddingRight: 4
           }}
         >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 4
+            }}
+          >
+            <Text
+              variant="bold"
+              style={{
+                fontSize: 15,
+                color: 'var(--ui-kit-color-typography-primary)'
+              }}
+            >
+              Preview
+            </Text>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                type="button"
+                onClick={handleClear}
+                title="Clear"
+                aria-label="Clear all shapes"
+                style={{
+                  background: 'var(--ui-kit-color-tertiary)',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--ui-kit-color-tertiary-fore)'
+                }}
+              >
+                <ReloadIcon size={18} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={handleUndo}
+                disabled={historyIndex <= 0}
+                aria-disabled={historyIndex <= 0}
+                title="Undo"
+                aria-label="Undo"
+                style={{
+                  background: 'var(--ui-kit-color-tertiary)',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: historyIndex <= 0 ? 'not-allowed' : 'pointer',
+                  color: 'var(--ui-kit-color-tertiary-fore)',
+                  opacity: historyIndex <= 0 ? 0.5 : 1
+                }}
+              >
+                <UndoIcon size={18} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                aria-pressed={handlesVisible}
+                onClick={toggleHandles}
+                title={handlesVisible ? 'Hide handles' : 'Show handles'}
+                aria-label={handlesVisible ? 'Hide Bezier handles' : 'Show Bezier handles'}
+                style={{
+                  background: 'var(--ui-kit-color-tertiary)',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--ui-kit-color-tertiary-fore)'
+                }}
+              >
+                {handlesVisible ? <EyeIcon size={18} aria-hidden="true" /> : <XIcon size={18} aria-hidden="true" />}
+              </button>
+            </div>
+          </div>
+          <div
+            style={{
+              position: 'relative',
+              border: '1px solid var(--ui-kit-color-border)',
+              background: 'var(--ui-kit-color-surface)',
+              borderRadius: 6,
+              padding: 6,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 16,
+              width: '100%',
+              height: 240,
+              boxSizing: 'border-box'
+            }}
+          >
+            <VectorCanvas
+              ref={canvasRef}
+              width={320}
+              height={240}
+              style={{ width: 320, height: 240, display: 'block' }}
+              onShapesChange={() => refreshShapes()}
+              onSelectionChange={handleSelectionChange}
+              aria-label="Zone de dessin vectoriel"
+            />
+            {shapes.length === 0 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  pointerEvents: 'none'
+                }}
+              >
+                <Text
+                  size="small"
+                  tone="tertiary"
+                  style={{
+                    color: 'var(--ui-kit-color-typography-tertiary)',
+                    textAlign: 'center'
+                  }}
+                >
+                  Click a shape below to add it to canvas
+                </Text>
+              </div>
+            )}
+          </div>
           <Text
             variant="bold"
             style={{
-              fontSize: 15,
+              fontSize: 13,
+              marginBottom: 4,
               color: 'var(--ui-kit-color-typography-primary)'
             }}
           >
-            Preview
+            Shapes
           </Text>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button
-              type="button"
-              onClick={handleClear}
-              title="Clear"
-              aria-label="Clear all shapes"
-              style={{
-                background: 'var(--ui-kit-color-tertiary)',
-                border: 'none',
-                borderRadius: 6,
-                padding: 6,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: 'var(--ui-kit-color-tertiary-fore)'
-              }}
-            >
-              <ReloadIcon size={18} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={handleUndo}
-              disabled={historyIndex <= 0}
-              aria-disabled={historyIndex <= 0}
-              title="Undo"
-              aria-label="Undo"
-              style={{
-                background: 'var(--ui-kit-color-tertiary)',
-                border: 'none',
-                borderRadius: 6,
-                padding: 6,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: historyIndex <= 0 ? 'not-allowed' : 'pointer',
-                color: 'var(--ui-kit-color-tertiary-fore)',
-                opacity: historyIndex <= 0 ? 0.5 : 1
-              }}
-            >
-              <UndoIcon size={18} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              aria-pressed={handlesVisible}
-              onClick={toggleHandles}
-              title={handlesVisible ? 'Hide handles' : 'Show handles'}
-              aria-label={handlesVisible ? 'Hide Bezier handles' : 'Show Bezier handles'}
-              style={{
-                background: 'var(--ui-kit-color-tertiary)',
-                border: 'none',
-                borderRadius: 6,
-                padding: 6,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: 'var(--ui-kit-color-tertiary-fore)'
-              }}
-            >
-              {handlesVisible ? <EyeIcon size={18} aria-hidden="true" /> : <XIcon size={18} aria-hidden="true" />}
-            </button>
+          <div
+            role="group"
+            aria-label="Shape palette"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 8,
+              marginBottom: 8
+            }}
+          >
+            {SHAPES.map(s => (
+              <button
+                key={s.key}
+                type="button"
+                aria-label={`Add ${s.label}`}
+                onClick={() => handleAddShape(s.key)}
+                style={{
+                  ...shapeBtnStyle,
+                  transition: 'background .15s, border-color .15s'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'var(--ui-kit-color-secondary-hover)';
+                  e.currentTarget.style.borderColor = 'var(--ui-kit-color-secondary)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'var(--ui-kit-color-surface)';
+                  e.currentTarget.style.borderColor = 'var(--ui-kit-color-border)';
+                }}
+              >
+                <s.Icon size={18} strokeWidth={1.8} aria-hidden="true" />
+              </button>
+            ))}
           </div>
-        </div>
-        <div
-          style={{
-            position: 'relative',
-            border: '1px solid var(--ui-kit-color-border)',
-            background: 'var(--ui-kit-color-surface)',
-            borderRadius: 6,
-            padding: 6,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginBottom: 16,
-            width: '100%',
-            height: 240,
-            boxSizing: 'border-box'
-          }}
-        >
-          <VectorCanvas
-            ref={canvasRef}
-            width={320}
-            height={240}
-            style={{ width: 320, height: 240, display: 'block' }}
-            onShapesChange={() => refreshShapes()}
-            onSelectionChange={handleSelectionChange}
-            aria-label="Zone de dessin vectoriel"
-          />
-          {shapes.length === 0 && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                pointerEvents: 'none'
-              }}
-            >
+          {shapes.length > 0 && (
+            <>
+              <div
+                style={{
+                  fontWeight: 600,
+                  fontSize: 13,
+                  marginBottom: 4,
+                  marginTop: 12
+                }}
+              >
+                Actions
+              </div>
+              <div
+                role="group"
+                aria-label="Boolean operations"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: 10,
+                  width: '100%'
+                }}
+              >
+                <Button
+                  alignment="center"
+                  ariaLabel={intl.formatMessage(messages.boolean_union)}
+                  variant="secondary"
+                  stretch
+                  icon={() => <Unite size={18} />}
+                  disabled={!canCombine()}
+                  onClick={() => handleCombine('union')}
+                  style={{ fontSize: 13 }}
+                >
+                  <FormattedMessage {...messages.boolean_union} />
+                </Button>
+                <Button
+                  alignment="center"
+                  ariaLabel={intl.formatMessage(messages.boolean_subtract)}
+                  variant="secondary"
+                  stretch
+                  icon={() => <Subtract size={18} />}
+                  disabled={!canCombine()}
+                  onClick={() => handleCombine('subtract')}
+                  style={{ fontSize: 13 }}
+                >
+                  <FormattedMessage {...messages.boolean_subtract} />
+                </Button>
+                <Button
+                  alignment="center"
+                  ariaLabel={intl.formatMessage(messages.boolean_intersect)}
+                  variant="secondary"
+                  stretch
+                  icon={() => <Intersect size={18} />}
+                  disabled={!canCombine()}
+                  onClick={() => handleCombine('intersect')}
+                  style={{ fontSize: 13 }}
+                >
+                  <FormattedMessage {...messages.boolean_intersect} />
+                </Button>
+                <Button
+                  alignment="center"
+                  ariaLabel={intl.formatMessage(messages.boolean_exclude)}
+                  variant="secondary"
+                  stretch
+                  icon={() => <Exclude size={18} />}
+                  disabled={!canCombine()}
+                  onClick={() => handleCombine('exclude')}
+                  style={{ fontSize: 13 }}
+                >
+                  <FormattedMessage {...messages.boolean_exclude} />
+                </Button>
+              </div>
               <Text
                 size="small"
                 tone="tertiary"
                 style={{
+                  marginTop: 6,
+                  marginBottom: 8,
                   color: 'var(--ui-kit-color-typography-tertiary)',
                   textAlign: 'center'
                 }}
               >
-                Click a shape below to add it to canvas
+                Select two shapes to apply an action
               </Text>
-            </div>
+            </>
           )}
-        </div>
-        <Text
-          variant="bold"
-          style={{
-            fontSize: 13,
-            marginBottom: 4,
-            color: 'var(--ui-kit-color-typography-primary)'
-          }}
-        >
-          Shapes
-        </Text>
-        <div
-          role="group"
-          aria-label="Shape palette"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 8,
-            marginBottom: 8
-          }}
-        >
-          {SHAPES.map(s => (
-            <button
-              key={s.key}
-              type="button"
-              aria-label={`Add ${s.label}`}
-              onClick={() => handleAddShape(s.key)}
-              style={{
-                ...shapeBtnStyle,
-                transition: 'background .15s, border-color .15s'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'var(--ui-kit-color-secondary-hover)';
-                e.currentTarget.style.borderColor = 'var(--ui-kit-color-secondary)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'var(--ui-kit-color-surface)';
-                e.currentTarget.style.borderColor = 'var(--ui-kit-color-border)';
-              }}
-            >
-              <s.Icon size={18} strokeWidth={1.8} aria-hidden="true" />
-            </button>
-          ))}
-        </div>
-        {shapes.length > 0 && (
-          <>
-            <div
-              style={{
-                fontWeight: 600,
-                fontSize: 13,
-                marginBottom: 4,
-                marginTop: 12
-              }}
-            >
-              Actions
-            </div>
-            <div
-              role="group"
-              aria-label="Boolean operations"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: 10,
-                width: '100%'
-              }}
-            >
-              <Button
-                alignment="center"
-                ariaLabel={intl.formatMessage(messages.boolean_union)}
-                variant="secondary"
-                stretch
-                icon={() => <Unite size={18} />}
-                disabled={!canCombine()}
-                onClick={() => handleCombine('union')}
-                style={{ fontSize: 13 }}
+          {/* Layers panel inside Accordion */}
+          {shapes.length > 0 && (
+            <Accordion>
+              <AccordionItem
+                title={intl.formatMessage(messages.layers_heading)}
+                isOpen={layersOpen}
+                onToggle={() => setLayersOpen(open => !open)}
               >
-                <FormattedMessage {...messages.boolean_union} />
-              </Button>
-              <Button
-                alignment="center"
-                ariaLabel={intl.formatMessage(messages.boolean_subtract)}
-                variant="secondary"
-                stretch
-                icon={() => <Subtract size={18} />}
-                disabled={!canCombine()}
-                onClick={() => handleCombine('subtract')}
-                style={{ fontSize: 13 }}
-              >
-                <FormattedMessage {...messages.boolean_subtract} />
-              </Button>
-              <Button
-                alignment="center"
-                ariaLabel={intl.formatMessage(messages.boolean_intersect)}
-                variant="secondary"
-                stretch
-                icon={() => <Intersect size={18} />}
-                disabled={!canCombine()}
-                onClick={() => handleCombine('intersect')}
-                style={{ fontSize: 13 }}
-              >
-                <FormattedMessage {...messages.boolean_intersect} />
-              </Button>
-              <Button
-                alignment="center"
-                ariaLabel={intl.formatMessage(messages.boolean_exclude)}
-                variant="secondary"
-                stretch
-                icon={() => <Exclude size={18} />}
-                disabled={!canCombine()}
-                onClick={() => handleCombine('exclude')}
-                style={{ fontSize: 13 }}
-              >
-                <FormattedMessage {...messages.boolean_exclude} />
-              </Button>
-            </div>
-            <Text
-              size="small"
-              tone="tertiary"
-              style={{
-                marginTop: 6,
-                marginBottom: 8,
-                color: 'var(--ui-kit-color-typography-tertiary)',
-                textAlign: 'center'
-              }}
-            >
-              Select two shapes to apply an action
-            </Text>
-          </>
-        )}
-        {/* Layers panel inside Accordion */}
-        {shapes.length > 0 && (
-          <Accordion>
-            <AccordionItem
-              title={intl.formatMessage(messages.layers_heading)}
-              isOpen={layersOpen}
-              onToggle={() => setLayersOpen(open => !open)}
-            >
-              <div
-                id="layers-panel"
-                role="list"
-                aria-label="Liste des calques"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 6,
-                  maxHeight: 180,
-                  overflowY: 'auto',
-                  border: '1px solid #eee',
-                  padding: 6,
-                  borderRadius: 6,
-                  margin: 0
-                }}
-              >
-                {shapes.map(s => {
-                  const isSel = selected.some(sel => sel.id === s.id);
-                  const ShapeIcon = SHAPES.find(shape => shape.key === s.type)?.Icon;
+                <div
+                  id="layers-panel"
+                  role="list"
+                  aria-label="Liste des calques"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                    maxHeight: 180,
+                    overflowY: 'auto',
+                    border: '1px solid #eee',
+                    padding: 6,
+                    borderRadius: 6,
+                    margin: 0
+                  }}
+                >
+                  {shapes.map(s => {
+                    const isSel = selected.some(sel => sel.id === s.id);
+                    const ShapeIcon = SHAPES.find(shape => shape.key === s.type)?.Icon;
 
-                  return (
-                    <div key={s.id} style={{ width: '100%' }}>
-                      <Button
-                        alignment="center"
-                        variant="secondary"
-                        stretch
-                        ariaLabel={`Select ${s.type}`}
-                        selected={isSel}
-                        icon={ShapeIcon ? () => (
-                          <ShapeIcon
-                            size={18}
-                            strokeWidth={1.8}
-                            aria-hidden="true"
-                            style={{
-                              color: isSel
-                                ? 'var(--ui-kit-color-primary)'
-                                : 'var(--ui-kit-color-typography-primary)'
-                            }}
-                          />
-                        ) : undefined}
-                        onClick={() => {
-                          canvasRef.current?.selectShapes?.([s.id]);
-                        }}
-                        style={{
-                          fontWeight: 500,
-                          fontSize: 13,
-                          marginBottom: 2
-                        }}
-                      >
-                        {SHAPES.find(shape => shape.key === s.type)?.label || s.type}
-                      </Button>
-                      {isSel && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0 10px 0', paddingLeft: 4 }}>
-                          {/* Remplace tout le bloc Swatch + ColorSelector par ceci */}
-                          <ColorSelector
-                            color={s.fillColor || '#ff0000'}
-                            onChange={color => handleChangeLayerColor(s.id, color)}
-                            triggerMode="swatch"
-                            size="small"
-                          />
-                          {/* Layer controls as small tertiary icon buttons */}
-                          <Button
-                            ariaLabel="Move layer up"
-                            icon={ArrowUpIcon}
-                            size="small"
-                            type="button"
-                            variant="tertiary"
-                            onClick={() => {
-                              canvasRef.current?.moveLayer?.(s.id, 'up');
-                              refreshShapes(false);
-                              announce('Layer moved up');
-                            }}
-                          />
-                          <Button
-                            ariaLabel="Move layer down"
-                            icon={ArrowDownIcon}
-                            size="small"
-                            type="button"
-                            variant="tertiary"
-                            onClick={() => {
-                              canvasRef.current?.moveLayer?.(s.id, 'down');
-                              refreshShapes(false);
-                              announce('Layer moved down');
-                            }}
-                          />
-                          <Button
-                            ariaLabel="Rotate right 10 degrees"
-                            icon={RotateIcon}
-                            size="small"
-                            type="button"
-                            variant="tertiary"
-                            onClick={() => {
-                              canvasRef.current?.rotateShape?.(s.id, 10);
-                              refreshShapes(false);
-                              announce(intl.formatMessage(messages.rotate_announce));
-                            }}
-                          />
-                          <Button
-                            ariaLabel="Scale up 10 percent"
-                            icon={PlusIcon}
-                            size="small"
-                            type="button"
-                            variant="tertiary"
-                            onClick={() => {
-                              canvasRef.current?.scaleShapes?.([s.id], 1.1);
-                              refreshShapes(false);
-                              announce('Scaled up');
-                            }}
-                          />
-                          <Button
-                            ariaLabel="Scale down 10 percent"
-                            icon={MinusIcon}
-                            size="small"
-                            type="button"
-                            variant="tertiary"
-                            onClick={() => {
-                              canvasRef.current?.scaleShapes?.([s.id], 0.9);
-                              refreshShapes(false);
-                              announce('Scaled down');
-                            }}
-                          />
-                          <Button
-                            ariaLabel="Delete this shape"
-                            icon={TrashIcon}
-                            size="small"
-                            type="button"
-                            variant="tertiary"
-                            onClick={() => {
-                              canvasRef.current?.deleteShape?.(s.id);
-                              refreshShapes();
-                              announce('Shape deleted');
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </AccordionItem>
-          </Accordion>
-        )}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 24 }}>
-          <Button
-            alignment="center"
-            ariaLabel="Add to design"
-            variant="primary"
-            stretch
-            loading={pushing}
-            disabled={shapes.length === 0 || pushing}
-            onClick={handlePushToCanva}
-          >
-            Add to design
-          </Button>
-          <Button
-            alignment="center"
-            ariaLabel="Help"
-            variant="secondary"
-            stretch
-            icon={InfoIcon}
-            onClick={() => setShowHelpPanel(true)}
-          >
-            Help
-          </Button>
-        </div>
-
-        {showHelpPanel && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100vw',
-              height: '100vh',
-              background: 'rgba(0,0,0,0.32)',
-              zIndex: 1000,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-            onClick={() => setShowHelpPanel(false)}
-          >
-            <div
-              style={{
-                background: 'var(--ui-kit-color-surface)',
-                color: 'var(--ui-kit-color-typography-primary)',
-                borderRadius: 10,
-                boxShadow: '0 4px 32px rgba(0,0,0,0.18)',
-                maxWidth: 420,
-                width: '90vw',
-                maxHeight: '80vh',
-                overflowY: 'auto',
-                padding: 24,
-                position: 'relative'
-              }}
-              onClick={e => e.stopPropagation()}
+                    return (
+                      <div key={s.id} style={{ width: '100%' }}>
+                        <Button
+                          alignment="center"
+                          variant="secondary"
+                          stretch
+                          ariaLabel={`Select ${s.type}`}
+                          selected={isSel}
+                          icon={ShapeIcon ? () => (
+                            <ShapeIcon
+                              size={18}
+                              strokeWidth={1.8}
+                              aria-hidden="true"
+                              style={{
+                                color: isSel
+                                  ? 'var(--ui-kit-color-primary)'
+                                  : 'var(--ui-kit-color-typography-primary)'
+                              }}
+                            />
+                          ) : undefined}
+                          onClick={() => {
+                            canvasRef.current?.selectShapes?.([s.id]);
+                          }}
+                          style={{
+                            fontWeight: 500,
+                            fontSize: 13,
+                            marginBottom: 2
+                          }}
+                        >
+                          {SHAPES.find(shape => shape.key === s.type)?.label || s.type}
+                        </Button>
+                        {isSel && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0 10px 0', paddingLeft: 4 }}>
+                            {/* Remplace tout le bloc Swatch + ColorSelector par ceci */}
+                            <ColorSelector
+                              color={s.fillColor || '#ff0000'}
+                              onChange={color => handleChangeLayerColor(s.id, color)}
+                              triggerMode="swatch"
+                              size="small"
+                            />
+                            {/* Layer controls as small tertiary icon buttons */}
+                            <Button
+                              ariaLabel="Move layer up"
+                              icon={ArrowUpIcon}
+                              size="small"
+                              type="button"
+                              variant="tertiary"
+                              onClick={() => {
+                                canvasRef.current?.moveLayer?.(s.id, 'up');
+                                refreshShapes(false);
+                                announce('Layer moved up');
+                              }}
+                            />
+                            <Button
+                              ariaLabel="Move layer down"
+                              icon={ArrowDownIcon}
+                              size="small"
+                              type="button"
+                              variant="tertiary"
+                              onClick={() => {
+                                canvasRef.current?.moveLayer?.(s.id, 'down');
+                                refreshShapes(false);
+                                announce('Layer moved down');
+                              }}
+                            />
+                            <Button
+                              ariaLabel="Rotate right 10 degrees"
+                              icon={RotateIcon}
+                              size="small"
+                              type="button"
+                              variant="tertiary"
+                              onClick={() => {
+                                canvasRef.current?.rotateShape?.(s.id, 10);
+                                refreshShapes(false);
+                                announce(intl.formatMessage(messages.rotate_announce));
+                              }}
+                            />
+                            <Button
+                              ariaLabel="Scale up 10 percent"
+                              icon={PlusIcon}
+                              size="small"
+                              type="button"
+                              variant="tertiary"
+                              onClick={() => {
+                                canvasRef.current?.scaleShapes?.([s.id], 1.1);
+                                refreshShapes(false);
+                                announce('Scaled up');
+                              }}
+                            />
+                            <Button
+                              ariaLabel="Scale down 10 percent"
+                              icon={MinusIcon}
+                              size="small"
+                              type="button"
+                              variant="tertiary"
+                              onClick={() => {
+                                canvasRef.current?.scaleShapes?.([s.id], 0.9);
+                                refreshShapes(false);
+                                announce('Scaled down');
+                              }}
+                            />
+                            <Button
+                              ariaLabel="Delete this shape"
+                              icon={TrashIcon}
+                              size="small"
+                              type="button"
+                              variant="tertiary"
+                              onClick={() => {
+                                canvasRef.current?.deleteShape?.(s.id);
+                                refreshShapes();
+                                announce('Shape deleted');
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </AccordionItem>
+            </Accordion>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 24 }}>
+            <Button
+              alignment="center"
+              ariaLabel="Add to design"
+              variant="primary"
+              stretch
+              loading={pushing}
+              disabled={shapes.length === 0 || pushing}
+              onClick={handlePushToCanva}
             >
-              <button
-                type="button"
-                aria-label="Close help"
-                onClick={() => setShowHelpPanel(false)}
-                style={{
-                  position: 'absolute',
-                  top: 12,
-                  right: 12,
-                  background: 'none',
-                  border: 'none',
-                  fontSize: 22,
-                  color: 'var(--ui-kit-color-typography-primary)',
-                  cursor: 'pointer'
-                }}
-              >
-                ×
-              </button>
-              <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 8 }}>
-                <FormattedMessage {...messages.help_heading} />
-              </div>
-              <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>
-                <FormattedMessage {...messages.help_how_title} />
-              </div>
-              <Text size="small" tone="tertiary" style={{ color: 'var(--ui-kit-color-typography-primary)' }}>
-                Combo lets you create and edit vector shapes, combine your design to Canva.
-              </Text>
-              <br />
-              <b>How to use:</b>
-              <ul style={{ margin: '8px 0 10px 0', paddingLeft: 16 }}>
-                <li><b>Add shapes:</b> Use the shape palette at the top to add new shapes to the canvas.</li>
-                <li><b>Select shapes:</b> Click a shape in the canvas or in the layers panel to select it. Hold <b>Shift</b> to select multiple shapes.</li>
-                <li><b>Combine shapes:</b> Select two shapes and use the Union, Subtract, Intersect, or Exclude buttons to combine them.</li>
-                <li><b>Edit layers:</b> Use the layers panel to change color, reorder, scale, or delete shapes.</li>
-                <li><b>Bezier handles:</b> Toggle Bezier handles with the eye button to adjust curves.</li>
-                <li><b>Undo:</b> Use the Undo button to revert your last change.</li>
-                <li><b>Clear:</b> Use the Trash button to remove all shapes from the canvas.</li>
-                <li><b>Push to Canva:</b> Use the Upload button or press <b>Enter</b> to send your design to Canva.</li>
-              </ul>
-              <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>Button explanations</div>
-              <ul style={{ margin: '0 0 10px 0', paddingLeft: 16 }}>
-                <li><b>Shape palette</b>: Add a new shape to the canvas.</li>
-                <li><b>Union / Subtract / Intersect / Exclude</b>: Combine two selected shapes using boolean operations.</li>
-                <li><b>Trash</b>: Clears all shapes from the canvas.</li>
-                <li><b>Upload</b>: Pushes your current design to Canva.</li>
-                <li><b>Undo</b>: Reverts the last change you made.</li>
-                <li><b>Eye</b>: Shows or hides Bezier handles for editing curves.</li>
-                <li><b>Layers panel</b>: 
-                  <ul style={{ margin: '4px 0 0', paddingLeft: 14 }}>
-                    <li><b>Color dot</b>: Change the fill color of a shape.</li>
-                    <li><b>Up / Down arrows</b>: Move the layer up or down in the stack.</li>
-                    <li><b>+</b> / <b>–</b>: Scale the shape up or down by 10%.</li>
-                    <li><b>✕</b>: Delete the shape from the canvas.</li>
-                  </ul>
-                </li>
-              </ul>
-              <div style={{ fontWeight: 600, margin: '4px 0 4px' }}>Shortcuts</div>
-              <ul style={{ margin: '0 0 8px', paddingLeft: 16 }}>
-                <li><b>Enter</b>: Push shapes to Canva</li>
-                <li><b>Delete / Backspace</b>: Delete selection</li>
-                <li><b>1–8</b>: Add palette shape</li>
-                <li><b>Click / Shift+Click</b>: Select / multi-select</li>
-                <li><b>/</b>: Scale +10% &nbsp;|&nbsp; <b>-</b>: Scale -10%</li>
-                <li><b>[ / ]</b>: Move layer down / up</li>
-                <li><b>Cmd/Ctrl+Z</b>: Undo</li>
-              </ul>
-              <div style={{ height: 12 }} />
-            </div>
+              Add to design
+            </Button>
+            <Button
+              alignment="center"
+              ariaLabel="Help"
+              variant="secondary"
+              stretch
+              icon={InfoIcon}
+              onClick={() => setShowHelpPanel(true)}
+            >
+              Help
+            </Button>
           </div>
-        )}
 
-        <div
-          ref={liveRef}
-          aria-live="polite"
-          aria-atomic="true"
-          style={{
-            position: 'absolute',
-            width: 1,
-            height: 1,
-            padding: 0,
-            margin: -1,
-            overflow: 'hidden',
-            clip: 'rect(0 0 0 0)',
-            border: 0
-          }}
-        />
-      </div>
-    </main>
+          <div
+            ref={liveRef}
+            aria-live="polite"
+            aria-atomic="true"
+            style={{
+              position: 'absolute',
+              width: 1,
+              height: 1,
+              padding: 0,
+              margin: -1,
+              overflow: 'hidden',
+              clip: 'rect(0 0 0 0)',
+              border: 0
+            }}
+          />
+        </div>
+      </main>
+    )
   );
 }
 
