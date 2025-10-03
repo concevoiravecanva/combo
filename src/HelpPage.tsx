@@ -97,7 +97,7 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
           width: "100%",
           maxWidth: 420,
           margin: "0 auto",
-          padding: "24px 16px 40px 16px", // ajouté du padding-bottom pour aérer le bas
+          padding: "24px 16px 40px 16px", // added bottom padding for breathing room
           background: "var(--ui-kit-color-surface)",
           color: "var(--ui-kit-color-typography-primary)",
           fontFamily: "var(--ui-kit-typography-font-family-body)",
@@ -225,7 +225,7 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
           <li style={{ marginBottom: 8 }}>
             <Text>
               <b>Delete selection:</b>
-              {/* espace clair entre Delete et Backspace */}
+              {/* clear spacing between Delete and Backspace */}
               <ShortcutBox keys={["Delete", "Backspace"]} />
             </Text>
           </li>
@@ -262,14 +262,14 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
           <li style={{ marginBottom: 8 }}>
             <Text>
               <b>Undo:</b>
-              {/* deux alternatives bien séparées, avec espaces dans le combo */}
+              {/* two clear alternatives, with spaces in the combo */}
               <ShortcutBox keys={["Cmd+Z", "Ctrl+Z"]} />
             </Text>
           </li>
           <li style={{ marginBottom: 8 }}>
             <Text>
               <b>Select / multi-select:</b>
-              {/* alternatives claires, combo avec espace autour de + */}
+              {/* clear alternatives, combo with spacing around + */}
               <ShortcutBox keys={["Click", "Shift+Click"]} />
             </Text>
           </li>

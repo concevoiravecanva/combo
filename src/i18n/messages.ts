@@ -124,5 +124,60 @@ export const messages = defineMessages({
   selection_many: {
     defaultMessage: '{count} shapes selected',
     description: 'Announcement when multiple shapes selected (count variable)'
+  },
+
+  preview_heading: {
+    defaultMessage: 'Preview',
+    description: 'Heading above the preview/canvas area'
+  },
+  shapes_heading: {
+    defaultMessage: 'Shapes',
+    description: 'Heading above the shape palette'
+  },
+  palette_aria_label: {
+    defaultMessage: 'Shape palette',
+    description: 'Aria-label for the group of shape buttons'
+  },
+  app_main_aria_label: {
+    defaultMessage: 'Vector editor',
+    description: 'Aria-label for the main application region'
+  },
+  canvas_aria_label: {
+    defaultMessage: 'Vector drawing area',
+    description: 'Aria-label for the canvas drawing surface'
+  },
+  empty_canvas_hint: {
+    defaultMessage: 'Click a shape below to add it to canvas',
+    description: 'Hint shown when there are no shapes on canvas'
+  },
+  layers_list_aria: {
+    defaultMessage: 'Layer list',
+    description: 'Aria-label for the list of layers'
+  },
+
+  // Help / Shortcuts labels
+  shortcuts_delete_selection: {
+    defaultMessage: 'Delete selection:',
+    description: 'Label for shortcut that deletes the selected shape(s)'
+  },
+  shortcuts_undo: {
+    defaultMessage: 'Undo:',
+    description: 'Label for shortcut that undoes the last action'
+  },
+  shortcuts_select_multiselect: {
+    defaultMessage: 'Select / multi-select:',
+    description: 'Label for shortcut explaining selection and multi-selection'
+  },
+  shortcut_add_to_design: {
+    defaultMessage: 'Add to design',
+    description: 'Description for Enter key shortcut'
+  },
+  shortcut_delete: {
+    defaultMessage: 'Delete',
+    description: 'Description for Delete/Backspace shortcut'
+  },
+  shortcut_add_shape: {
+    defaultMessage: 'Add shape',
+    description: 'Description for number keys to add shapes'
   }
 });

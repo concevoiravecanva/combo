@@ -51,7 +51,7 @@ const formatTypeLabel = (type: string): string => {
   const found = SHAPES.find(shape => shape.key === type)?.label;
   if (found) return found;
   if (!type) return type;
-  return type.charAt(0).toUpperCase() + type.slice(1); // ex: "shape" -> "Shape"
+  return type.charAt(0).toUpperCase() + type.slice(1); // e.g., "shape" -> "Shape"
 };
 
 export default function App() {
@@ -214,14 +214,14 @@ export default function App() {
     const currentIds = selected.map((s) => s.id);
 
     if (!multi) {
-      // clic simple: sélection unique
+      // single click: single selection
       canvasRef.current?.selectShapes?.([id]);
       return;
     }
 
-    // clic avec Shift/Cmd/Ctrl: construire une sélection de max 2
+    // click with Shift/Cmd/Ctrl: build a selection of up to 2
     if (currentIds.includes(id)) {
-      // déjà sélectionné: ne rien changer
+      // already selected: no change
       canvasRef.current?.selectShapes?.(currentIds);
       return;
     }
@@ -232,7 +232,7 @@ export default function App() {
     } else if (currentIds.length === 1) {
       nextIds = [currentIds[0], id];
     } else {
-      // garde le plus récent + le nouveau (max 2)
+      // keep the most recent + the new one (max 2)
       nextIds = [currentIds[currentIds.length - 1], id];
     }
 
@@ -299,12 +299,12 @@ export default function App() {
         aria-label="Vector editor"
         style={{
           width: '100%',
-          height: '100vh', // Limite à la hauteur de la fenêtre
+          height: '100vh', // Limit to the viewport height
           margin: 0,
           padding: 12,
           fontFamily: 'sans-serif',
           boxSizing: 'border-box',
-          overflowY: 'auto', // Ajoute le scroll vertical
+          overflowY: 'auto', // Enable vertical scrolling
           overflowX: 'hidden'
         }}
       >
@@ -316,7 +316,7 @@ export default function App() {
             flexDirection: 'column',
             gap: 12,
             paddingBottom: 16,
-            // overflowY: 'auto', // Tu peux retirer cette ligne ici
+            // overflowY: 'auto', // You can remove this line here
             overflowX: 'hidden',
             WebkitOverflowScrolling: 'touch',
             paddingRight: 4
@@ -642,7 +642,7 @@ export default function App() {
                         </Button>
                         {isSel && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0 10px 0', paddingLeft: 4 }}>
-                            {/* Remplace tout le bloc Swatch + ColorSelector par ceci */}
+                            {/* Replace the entire Swatch + ColorSelector block with this */}
                             <ColorSelector
                               color={s.fillColor || '#ff0000'}
                               onChange={color => handleChangeLayerColor(s.id, color)}

@@ -91,7 +91,6 @@ a:focus-visible {
   }
 }
 
-/* Option: titres plus grands forcent Canva Sans Display si dispo */
 h1, h2, h3, [data-canva-title] {
   font-family: "Canva Sans Display", "Canva Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: var(--ui-kit-color-typography-primary);
