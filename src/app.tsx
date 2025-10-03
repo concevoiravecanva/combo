@@ -32,6 +32,7 @@ import {
 import { RotateIcon, TrashIcon, ArrowUpIcon, ArrowDownIcon } from '@canva/app-ui-kit';
 import { PlusIcon, MinusIcon } from '@canva/app-ui-kit';
 import HelpPage from './HelpPage';
+import '@canva/app-ui-kit/styles.css';
 
 type CombineOp = 'union' | 'subtract' | 'intersect' | 'exclude';
 
@@ -405,8 +406,8 @@ export default function App() {
           <div
             style={{
               position: 'relative',
-              border: '1px solid var(--ui-kit-color-border)',
-              background: 'var(--ui-kit-color-surface)',
+              border: '1px solid var(--ui-kit-color-border, #E5E7EB)',
+              background: 'var(--ui-kit-color-surface, #FFFFFF)',
               borderRadius: 6,
               padding: 6,
               display: 'flex',
@@ -425,7 +426,7 @@ export default function App() {
               style={{ width: 320, height: 240, display: 'block' }}
               onShapesChange={() => refreshShapes()}
               onSelectionChange={handleSelectionChange}
-              aria-label="Zone de dessin vectoriel"
+              aria-label="Vector drawing area"
             />
             {shapes.length === 0 && (
               <div
@@ -482,15 +483,15 @@ export default function App() {
                 onClick={() => handleAddShape(s.key)}
                 style={{
                   ...shapeBtnStyle,
-                  transition: 'background .15s, border-color .15s'
+                  transition: 'background .15s, border-color .15s, color .15s'
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.background = 'var(--ui-kit-color-secondary-hover)';
-                  e.currentTarget.style.borderColor = 'var(--ui-kit-color-secondary)';
+                  e.currentTarget.style.background = '#F3F4F6';
+                  e.currentTarget.style.borderColor = '#D1D5DB';
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.background = 'var(--ui-kit-color-surface)';
-                  e.currentTarget.style.borderColor = 'var(--ui-kit-color-border)';
+                  e.currentTarget.style.background = 'var(--ui-kit-color-surface, #FFFFFF)';
+                  e.currentTarget.style.borderColor = 'var(--ui-kit-color-border, #E5E7EB)';
                 }}
               >
                 <s.Icon size={18} strokeWidth={1.8} aria-hidden="true" />
@@ -593,14 +594,14 @@ export default function App() {
                 <div
                   id="layers-panel"
                   role="list"
-                  aria-label="Liste des calques"
+                  aria-label="Layer list"
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 6,
                     maxHeight: 180,
                     overflowY: 'auto',
-                    border: '1px solid #eee',
+                    border: '1px solid var(--ui-kit-color-border, #E5E7EB)',
                     padding: 6,
                     borderRadius: 6,
                     margin: 0
@@ -780,8 +781,9 @@ const shapeBtnStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  border: '1px solid var(--ui-kit-color-border)',
-  background: 'var(--ui-kit-color-surface)',
+  border: '1px solid var(--ui-kit-color-border, #E5E7EB)',
+  background: 'var(--ui-kit-color-surface, #FFFFFF)',
+  color: 'var(--ui-kit-color-typography-primary, #111827)',
   borderRadius: 6,
   cursor: 'pointer',
   padding: 0
