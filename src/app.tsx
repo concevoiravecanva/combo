@@ -46,6 +46,13 @@ const SHAPES = [
   { key: 'star', label: 'Star', Icon: IconStar }
 ];
 
+const formatTypeLabel = (type: string): string => {
+  const found = SHAPES.find(shape => shape.key === type)?.label;
+  if (found) return found;
+  if (!type) return type;
+  return type.charAt(0).toUpperCase() + type.slice(1); // ex: "shape" -> "Shape"
+};
+
 export default function App() {
   const canvasRef = useRef<VectorCanvasRef | null>(null);
   const [shapes, setShapes] = useState<ShapeData[]>([]);
@@ -196,6 +203,39 @@ export default function App() {
     const next = !handlesVisible;
     setHandlesVisible(next);
     canvasRef.current?.setHandlesVisibility?.(next);
+  }
+
+  function handleLayerButtonClick(
+    e: React.MouseEvent,
+    id: string
+  ) {
+    const multi = e.shiftKey || e.metaKey || e.ctrlKey;
+    const currentIds = selected.map((s) => s.id);
+
+    if (!multi) {
+      // clic simple: sélection unique
+      canvasRef.current?.selectShapes?.([id]);
+      return;
+    }
+
+    // clic avec Shift/Cmd/Ctrl: construire une sélection de max 2
+    if (currentIds.includes(id)) {
+      // déjà sélectionné: ne rien changer
+      canvasRef.current?.selectShapes?.(currentIds);
+      return;
+    }
+
+    let nextIds: string[] = [];
+    if (currentIds.length === 0) {
+      nextIds = [id];
+    } else if (currentIds.length === 1) {
+      nextIds = [currentIds[0], id];
+    } else {
+      // garde le plus récent + le nouveau (max 2)
+      nextIds = [currentIds[currentIds.length - 1], id];
+    }
+
+    canvasRef.current?.selectShapes?.(nextIds);
   }
 
   useEffect(() => {
@@ -576,7 +616,7 @@ export default function App() {
                           alignment="center"
                           variant="secondary"
                           stretch
-                          ariaLabel={`Select ${s.type}`}
+                          ariaLabel={`Select ${formatTypeLabel(s.type)}`}
                           selected={isSel}
                           icon={ShapeIcon ? () => (
                             <ShapeIcon
@@ -590,16 +630,14 @@ export default function App() {
                               }}
                             />
                           ) : undefined}
-                          onClick={() => {
-                            canvasRef.current?.selectShapes?.([s.id]);
-                          }}
+                          onClick={(e) => handleLayerButtonClick(e, s.id)}
                           style={{
                             fontWeight: 500,
                             fontSize: 13,
                             marginBottom: 2
                           }}
                         >
-                          {SHAPES.find(shape => shape.key === s.type)?.label || s.type}
+                          {formatTypeLabel(s.type)}
                         </Button>
                         {isSel && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0 10px 0', paddingLeft: 4 }}>
