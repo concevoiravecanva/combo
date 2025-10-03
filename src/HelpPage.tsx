@@ -8,7 +8,7 @@ function ShortcutBox({ keys }: { keys: string[] }) {
       style={{
         display: "inline-flex",
         flexWrap: "wrap",
-        gap: 4, // réduit (avant: 8)
+        gap: 4,
         marginLeft: 8,
         verticalAlign: "middle",
       }}
@@ -16,7 +16,7 @@ function ShortcutBox({ keys }: { keys: string[] }) {
       {keys.map((variant, i) => {
         const parts = variant.split("+");
         return (
-          <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4 /* réduit (avant: 6) */ }}>
+          <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
             {parts.map((p, j) => (
               <span
                 key={j}
@@ -24,14 +24,15 @@ function ShortcutBox({ keys }: { keys: string[] }) {
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  padding: "2px 5px", // légèrement réduit (avant: 2px 6px)
-                  background: "#F3F4F6",
-                  border: "1px solid var(--ui-kit-color-border)",
+                  padding: "2px 5px",
+                  // Use Canva tokens for light/dark compatibility
+                  background: "var(--ui-kit-color-ui-neutral-strong-bg)",
+                  border: "1px solid var(--ui-kit-color-ui-border)",
                   borderRadius: 6,
                   fontFamily: "var(--ui-kit-typography-font-family-monospace)",
                   fontSize: 13,
                   lineHeight: 1.2,
-                  color: "var(--ui-kit-color-typography-primary)",
+                  color: "var(--ui-kit-color-content-fg)",
                 }}
               >
                 {p}
