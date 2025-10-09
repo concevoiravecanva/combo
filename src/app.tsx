@@ -318,12 +318,12 @@ export default function App() {
         aria-label="Vector editor"
         style={{
           width: '100%',
-          height: '100vh', // Limit to the viewport height
+          // Let the document handle height so the page can scroll
           margin: 0,
           padding: 12,
           fontFamily: 'sans-serif',
           boxSizing: 'border-box',
-          overflowY: 'auto', // Enable vertical scrolling
+          // Remove isolated scroll; enable full-page scrolling
           overflowX: 'hidden'
         }}
       >
@@ -580,8 +580,6 @@ export default function App() {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 6,
-                    maxHeight: 180,
-                    overflowY: 'auto',
                     border: '1px solid var(--ui-kit-color-border, #E5E7EB)',
                     padding: 6,
                     borderRadius: 6,
