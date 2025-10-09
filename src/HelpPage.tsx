@@ -1,6 +1,8 @@
 import React from "react";
 import { Title, Button, Text, Alert } from "@canva/app-ui-kit";
 import { ArrowLeftIcon } from "@canva/app-ui-kit";
+import { FormattedMessage } from 'react-intl';
+import { messages } from './i18n/messages';
 
 function ShortcutBox({ keys }: { keys: string[] }) {
   return (
@@ -106,174 +108,161 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
           boxSizing: "border-box"
         }}
       >
-        <div
-          style={{
-            fontWeight: 600,
-            fontSize: 18,
-            marginBottom: 8,
-            fontFamily: "var(--ui-kit-typography-font-family-heading)"
-          }}
-        >
-          How the app works
-        </div>
-        <Text size="small" tone="tertiary" style={{ marginBottom: 12 }}>
-          Combo lets you create and edit vector shapes, then add them to your Canva design.
-        </Text>
-        <div
-          style={{
-            fontWeight: 600,
-            margin: "16px 0 8px",
-            fontFamily: "var(--ui-kit-typography-font-family-heading)"
-          }}
-        >
-          How to use
-        </div>
-        <ul style={{ margin: "0 0 10px 0", paddingLeft: 16 }}>
-          <li>
-            <Text>
-              <b>Add shapes:</b> Select from the shape palette to add new shapes to the canvas.
-            </Text>
-          </li>
-          <li>
-            <Text>
-              <b>Select shapes:</b> Click a shape on the canvas or in the layers panel to select it. Hold <b>Shift</b> to select up to two shapes at once.
-            </Text>
-          </li>
-          <li>
-            <Text>
-              <b>Combine shapes:</b> Select two shapes and use the Union, Subtract, Intersect, or Exclude buttons to combine them.
-            </Text>
-          </li>
-          <li>
-            <Text>
-              <b>Edit layers:</b> In the layers panel, you can change colors, reorder, resize, or delete shapes.
-            </Text>
-          </li>
-          <li>
-            <Text>
-              <b>Bezier handles:</b> Drag the handles to adjust paths and curves. Use the eye icon to show or hide them.
-            </Text>
-          </li>
-          <li>
-            <Text>
-              <b>Undo:</b> Click the undo button to revert your last change.
-            </Text>
-          </li>
-          <li>
-            <Text>
-              <b>Clear:</b> Click the clear button to remove all shapes from the canvas.
-            </Text>
-          </li>
-          <li>
-            <Text>
-              <b>Add to design:</b> When you’re happy with your shapes, click this button to add them to your Canva design.
-            </Text>
-          </li>
-        </ul>
-        <div
-          style={{
-            fontWeight: 600,
-            margin: "16px 0 8px",
-            fontFamily: "var(--ui-kit-typography-font-family-heading)"
-          }}
-        >
-          Layers panel
-        </div>
-        <ul style={{ margin: "0 0 10px 0", paddingLeft: 16 }}>
-          <li>
-            <Text>
-              <b>Swatch:</b> Change the shape’s fill color.
-            </Text>
-          </li>
-          <li>
-            <Text>
-              <b>Arrange:</b> Move the shape forward or backward in the layer stack.
-            </Text>
-          </li>
-          <li>
-            <Text>
-              <b>Rotate:</b> Turn the shape in 10° steps.
-            </Text>
-          </li>
-          <li>
-            <Text>
-              <b>Scale:</b> Make the shape bigger or smaller by 10%.
-            </Text>
-          </li>
-          <li>
-            <Text>
-              <b>Delete:</b> Remove the shape from the canvas.
-            </Text>
-          </li>
-        </ul>
-        <div
-          style={{
-            fontWeight: 600,
-            margin: "16px 0 8px",
-            fontFamily: "var(--ui-kit-typography-font-family-heading)"
-          }}
-        >
-          Keyboard shortcuts
-        </div>
-        <ul style={{ margin: "0 0 8px", paddingLeft: 16 }}>
-          <li style={{ marginBottom: 8 }}>
-            <Text>
-              <b>Add to design:</b>
-              <ShortcutBox keys={["Enter"]} />
-            </Text>
-          </li>
-          <li style={{ marginBottom: 8 }}>
-            <Text>
-              <b>Delete selection:</b>
-              {/* clear spacing between Delete and Backspace */}
-              <ShortcutBox keys={["Delete", "Backspace"]} />
-            </Text>
-          </li>
-          <li style={{ marginBottom: 8 }}>
-            <Text>
-              <b>Add shape:</b>
-              <ShortcutBox keys={["1", "2", "3", "4", "5", "6", "7", "8"]} />
-            </Text>
-          </li>
-          <li style={{ marginBottom: 8 }}>
-            <Text>
-              <b>Scale up:</b>
-              <ShortcutBox keys={["/"]} />
-            </Text>
-          </li>
-          <li style={{ marginBottom: 8 }}>
-            <Text>
-              <b>Scale down:</b>
-              <ShortcutBox keys={["-"]} />
-            </Text>
-          </li>
-          <li style={{ marginBottom: 8 }}>
-            <Text>
-              <b>Arrange up:</b>
-              <ShortcutBox keys={["]"]} />
-            </Text>
-          </li>
-          <li style={{ marginBottom: 8 }}>
-            <Text>
-              <b>Arrange down:</b>
-              <ShortcutBox keys={["["]} />
-            </Text>
-          </li>
-          <li style={{ marginBottom: 8 }}>
-            <Text>
-              <b>Undo:</b>
-              {/* two clear alternatives, with spaces in the combo */}
-              <ShortcutBox keys={["Cmd+Z", "Ctrl+Z"]} />
-            </Text>
-          </li>
-          <li style={{ marginBottom: 8 }}>
-            <Text>
-              <b>Select / multi-select:</b>
-              {/* clear alternatives, combo with spacing around + */}
-              <ShortcutBox keys={["Click", "Shift+Click"]} />
-            </Text>
-          </li>
-        </ul>
+        <>
+          {/* How the app works — Body/Medium (Bold) */}
+          <Text size="medium" variant="bold" style={{ margin: '0 0 8px 0' }}>
+            <FormattedMessage {...messages.help_how_title} />
+          </Text>
+
+          {/* Combo intro — Body/Medium */}
+          <Text size="medium" style={{ margin: '0 0 12px 0' }}>
+            <FormattedMessage {...messages.help_intro_body} />
+          </Text>
+
+          {/* How to use — Body/Medium (Bold) */}
+          <Text size="medium" variant="bold" style={{ margin: '16px 0 8px 0' }}>
+            <FormattedMessage {...messages.help_usage_title} />
+          </Text>
+
+          <ul style={{ margin: "0 0 10px 0", paddingLeft: 16 }}>
+            <li>
+              <Text>
+                <b>Add shapes:</b> Select from the shape palette to add new shapes to the canvas.
+              </Text>
+            </li>
+            <li>
+              <Text>
+                <b>Select shapes:</b> Click a shape on the canvas or in the layers panel to select it. Hold <b>Shift</b> to select up to two shapes at once.
+              </Text>
+            </li>
+            <li>
+              <Text>
+                <b>Combine shapes:</b> Select two shapes and use the Union, Subtract, Intersect, or Exclude buttons to combine them.
+              </Text>
+            </li>
+            <li>
+              <Text>
+                <b>Edit layers:</b> In the layers panel, you can change colors, reorder, resize, or delete shapes.
+              </Text>
+            </li>
+            <li>
+              <Text>
+                <b>Bezier handles:</b> Drag the handles to adjust paths and curves. Use the eye icon to show or hide them.
+              </Text>
+            </li>
+            <li>
+              <Text>
+                <b>Undo:</b> Click the undo button to revert your last change.
+              </Text>
+            </li>
+            <li>
+              <Text>
+                <b>Clear:</b> Click the clear button to remove all shapes from the canvas.
+              </Text>
+            </li>
+            <li>
+              <Text>
+                <b>Add to design:</b> When you’re happy with your shapes, click this button to add them to your Canva design.
+              </Text>
+            </li>
+          </ul>
+          {/* Layers panel — Body/Medium (Bold) */}
+          <Text size="medium" variant="bold" style={{ margin: '16px 0 8px 0' }}>
+            <FormattedMessage {...messages.help_layers_title} />
+          </Text>
+
+          <ul style={{ margin: "0 0 10px 0", paddingLeft: 16 }}>
+            <li>
+              <Text>
+                <b>Swatch:</b> Change the shape’s fill color.
+              </Text>
+            </li>
+            <li>
+              <Text>
+                <b>Arrange:</b> Move the shape forward or backward in the layer stack.
+              </Text>
+            </li>
+            <li>
+              <Text>
+                <b>Rotate:</b> Turn the shape in 10° steps.
+              </Text>
+            </li>
+            <li>
+              <Text>
+                <b>Scale:</b> Make the shape bigger or smaller by 10%.
+              </Text>
+            </li>
+            <li>
+              <Text>
+                <b>Delete:</b> Remove the shape from the canvas.
+              </Text>
+            </li>
+          </ul>
+          {/* Keyboard shortcuts — Body/Medium (Bold) */}
+          <Text size="medium" variant="bold" style={{ margin: '16px 0 8px 0' }}>
+            <FormattedMessage {...messages.help_kbd_title} />
+          </Text>
+
+          <ul style={{ margin: "0 0 8px", paddingLeft: 16 }}>
+            <li style={{ marginBottom: 8 }}>
+              <Text>
+                <b>Add to design:</b>
+                <ShortcutBox keys={["Enter"]} />
+              </Text>
+            </li>
+            <li style={{ marginBottom: 8 }}>
+              <Text>
+                <b>Delete selection:</b>
+                {/* clear spacing between Delete and Backspace */}
+                <ShortcutBox keys={["Delete", "Backspace"]} />
+              </Text>
+            </li>
+            <li style={{ marginBottom: 8 }}>
+              <Text>
+                <b>Add shape:</b>
+                <ShortcutBox keys={["1", "2", "3", "4", "5", "6", "7", "8"]} />
+              </Text>
+            </li>
+            <li style={{ marginBottom: 8 }}>
+              <Text>
+                <b>Scale up:</b>
+                <ShortcutBox keys={["/"]} />
+              </Text>
+            </li>
+            <li style={{ marginBottom: 8 }}>
+              <Text>
+                <b>Scale down:</b>
+                <ShortcutBox keys={["-"]} />
+              </Text>
+            </li>
+            <li style={{ marginBottom: 8 }}>
+              <Text>
+                <b>Arrange up:</b>
+                <ShortcutBox keys={["]"]} />
+              </Text>
+            </li>
+            <li style={{ marginBottom: 8 }}>
+              <Text>
+                <b>Arrange down:</b>
+                <ShortcutBox keys={["["]} />
+              </Text>
+            </li>
+            <li style={{ marginBottom: 8 }}>
+              <Text>
+                <b>Undo:</b>
+                {/* two clear alternatives, with spaces in the combo */}
+                <ShortcutBox keys={["Cmd+Z", "Ctrl+Z"]} />
+              </Text>
+            </li>
+            <li style={{ marginBottom: 8 }}>
+              <Text>
+                <b>Select / multi-select:</b>
+                {/* clear alternatives, combo with spacing around + */}
+                <ShortcutBox keys={["Click", "Shift+Click"]} />
+              </Text>
+            </li>
+          </ul>
+        </>
         <div>
           <Alert tone="info" style={{ marginTop: 24 }}>
             These keyboard shortcuts only work when the app is active. On the canvas editor, Canva's native keyboard shortcuts apply.

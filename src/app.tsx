@@ -621,17 +621,16 @@ export default function App() {
                         </Button>
                         {isSel && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0 10px 0', paddingLeft: 4 }}>
-                            {/* Replace the entire Swatch + ColorSelector block with this */}
                             <ColorSelector
                               color={s.fillColor || '#ff0000'}
                               onChange={color => handleChangeLayerColor(s.id, color)}
                               triggerMode="swatch"
                               size="small"
                             />
-                            {/* Layer controls as small tertiary icon buttons */}
+                            {/* Layer controls as small tertiary icon buttons (with tooltips) */}
                             <Button
-                              ariaLabel="Move layer up"
-                              tooltipLabel="Move layer up"
+                              ariaLabel={intl.formatMessage(messages.tool_move_up)}
+                              tooltipLabel={intl.formatMessage(messages.tool_move_up)}
                               icon={ArrowUpIcon}
                               size="small"
                               type="button"
@@ -643,8 +642,8 @@ export default function App() {
                               }}
                             />
                             <Button
-                              ariaLabel="Move layer down"
-                              tooltipLabel="Move layer down"
+                              ariaLabel={intl.formatMessage(messages.tool_move_down)}
+                              tooltipLabel={intl.formatMessage(messages.tool_move_down)}
                               icon={ArrowDownIcon}
                               size="small"
                               type="button"
@@ -656,8 +655,8 @@ export default function App() {
                               }}
                             />
                             <Button
-                              ariaLabel="Rotate right 10 degrees"
-                              tooltipLabel="Rotate right 10°"
+                              ariaLabel={intl.formatMessage(messages.tool_rotate)}
+                              tooltipLabel={intl.formatMessage(messages.tool_rotate)}
                               icon={RotateIcon}
                               size="small"
                               type="button"
@@ -669,8 +668,8 @@ export default function App() {
                               }}
                             />
                             <Button
-                              ariaLabel="Scale up 10 percent"
-                              tooltipLabel="Scale up 10%"
+                              ariaLabel={intl.formatMessage(messages.tool_scale_up)}
+                              tooltipLabel={intl.formatMessage(messages.tool_scale_up)}
                               icon={PlusIcon}
                               size="small"
                               type="button"
@@ -682,8 +681,8 @@ export default function App() {
                               }}
                             />
                             <Button
-                              ariaLabel="Scale down 10 percent"
-                              tooltipLabel="Scale down 10%"
+                              ariaLabel={intl.formatMessage(messages.tool_scale_down)}
+                              tooltipLabel={intl.formatMessage(messages.tool_scale_down)}
                               icon={MinusIcon}
                               size="small"
                               type="button"
@@ -695,8 +694,8 @@ export default function App() {
                               }}
                             />
                             <Button
-                              ariaLabel="Delete this shape"
-                              tooltipLabel="Delete"
+                              ariaLabel={intl.formatMessage(messages.tool_delete)}
+                              tooltipLabel={intl.formatMessage(messages.tool_delete)}
                               icon={TrashIcon}
                               size="small"
                               type="button"

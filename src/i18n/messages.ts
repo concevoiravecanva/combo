@@ -179,5 +179,41 @@ export const messages = defineMessages({
   shortcut_add_shape: {
     defaultMessage: 'Add shape',
     description: 'Description for number keys to add shapes'
+  },
+  tool_move_up: {
+    defaultMessage: 'Move up',
+    description: 'Tooltip/aria for layers panel action button to move a layer up'
+  },
+  tool_move_down: {
+    defaultMessage: 'Move down',
+    description: 'Tooltip/aria for layers panel action button to move a layer down'
+  },
+  tool_rotate: {
+    defaultMessage: 'Rotate',
+    description: 'Tooltip/aria for layers panel action button to rotate the shape'
+  },
+  tool_scale_up: {
+    defaultMessage: 'Scale up',
+    description: 'Tooltip/aria for layers panel action button to scale the shape up'
+  },
+  tool_scale_down: {
+    defaultMessage: 'Scale down',
+    description: 'Tooltip/aria for layers panel action button to scale the shape down'
+  },
+  tool_delete: {
+    defaultMessage: 'Delete',
+    description: 'Tooltip/aria for layers panel action button to delete the shape'
+  },
+  help_intro_body: {
+    defaultMessage: 'Combo lets you create and edit vector shapes, then add them to your Canva design.',
+    description: 'Intro sentence explaining what the app does'
+  },
+  help_layers_title: {
+    defaultMessage: 'Layers panel',
+    description: 'Section title for Layers panel explanation'
+  },
+  help_kbd_title: {
+    defaultMessage: 'Keyboard shortcuts',
+    description: 'Section title for the keyboard shortcuts list'
   }
 });
