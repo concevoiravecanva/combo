@@ -290,6 +290,25 @@ export default function App() {
     
   }, []);
 
+  useEffect(() => {
+    // When coming back from Help, repopulate the canvas if it’s empty.
+    if (!showHelpPanel && canvasRef.current) {
+      const current = canvasRef.current.getShapesList?.() || [];
+      // Prefer the latest history snapshot, fallback to current shapes state
+      const target = (history[historyIndex] && history[historyIndex].length > 0)
+        ? history[historyIndex]
+        : shapes;
+
+      if (current.length === 0 && target.length > 0) {
+        canvasRef.current.clearCanvas?.();
+        target.forEach(s => {
+          canvasRef.current?.addShape?.(s.type, s.fillColor || '#ff0000', 150);
+        });
+        refreshShapes(false); // update lists without pushing a new history entry
+      }
+    }
+  }, [showHelpPanel, history, historyIndex, shapes]);
+
   return (
     showHelpPanel ? (
       <HelpPage onBack={() => setShowHelpPanel(false)} />
