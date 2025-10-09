@@ -322,138 +322,136 @@ export default function App() {
             paddingRight: 4
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 4
-            }}
-          >
-            <Text
-              variant="bold"
+          {/* Tight group: toolbar + canvas */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+            <div
               style={{
-                fontSize: 15,
-                color: 'var(--ui-kit-color-typography-primary)'
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                margin: 0 // remove extra spacing
               }}
             >
-              Preview
-            </Text>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button
-                type="button"
-                onClick={handleClear}
-                title="Clear"
-                aria-label="Clear all shapes"
+              <Text
+                variant="bold"
                 style={{
-                  background: 'var(--ui-kit-color-tertiary)',
-                  border: 'none',
-                  borderRadius: 6,
-                  padding: 6,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  color: 'var(--ui-kit-color-tertiary-fore)'
+                  fontSize: 15,
+                  margin: 0, // ensure no default margin
+                  color: 'var(--ui-kit-color-typography-primary)'
                 }}
               >
-                <ReloadIcon size={18} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                onClick={handleUndo}
-                disabled={historyIndex <= 0}
-                aria-disabled={historyIndex <= 0}
-                title="Undo"
-                aria-label="Undo"
-                style={{
-                  background: 'var(--ui-kit-color-tertiary)',
-                  border: 'none',
-                  borderRadius: 6,
-                  padding: 6,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: historyIndex <= 0 ? 'not-allowed' : 'pointer',
-                  color: 'var(--ui-kit-color-tertiary-fore)',
-                  opacity: historyIndex <= 0 ? 0.5 : 1
-                }}
-              >
-                <UndoIcon size={18} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                aria-pressed={handlesVisible}
-                onClick={toggleHandles}
-                title={handlesVisible ? 'Hide handles' : 'Show handles'}
-                aria-label={handlesVisible ? 'Hide Bezier handles' : 'Show Bezier handles'}
-                style={{
-                  background: 'var(--ui-kit-color-tertiary)',
-                  border: 'none',
-                  borderRadius: 6,
-                  padding: 6,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  color: 'var(--ui-kit-color-tertiary-fore)'
-                }}
-              >
-                {handlesVisible ? <EyeIcon size={18} aria-hidden="true" /> : <XIcon size={18} aria-hidden="true" />}
-              </button>
-            </div>
-          </div>
-          <div
-            style={{
-              position: 'relative',
-              border: '1px solid var(--ui-kit-color-border, #E5E7EB)',
-              background: 'var(--ui-kit-color-surface, #FFFFFF)',
-              borderRadius: 6,
-              padding: 6,
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginBottom: 16,
-              width: '100%',
-              height: 240,
-              boxSizing: 'border-box'
-            }}
-          >
-            <VectorCanvas
-              ref={canvasRef}
-              width={320}
-              height={240}
-              style={{ width: 320, height: 240, display: 'block' }}
-              onShapesChange={() => refreshShapes()}
-              onSelectionChange={handleSelectionChange}
-              aria-label="Vector drawing area"
-            />
-            {shapes.length === 0 && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  pointerEvents: 'none'
-                }}
-              >
-                <Text
-                  size="small"
-                  tone="tertiary"
+                Preview
+              </Text>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  title="Clear"
+                  aria-label="Clear all shapes"
                   style={{
-                    color: 'var(--ui-kit-color-typography-tertiary)',
-                    textAlign: 'center'
+                    background: 'var(--ui-kit-color-tertiary)',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: 'var(--ui-kit-color-tertiary-fore)'
                   }}
                 >
-                  Click a shape below to add it to canvas
-                </Text>
+                  <ReloadIcon size={18} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUndo}
+                  disabled={historyIndex <= 0}
+                  aria-disabled={historyIndex <= 0}
+                  title="Undo"
+                  aria-label="Undo"
+                  style={{
+                    background: 'var(--ui-kit-color-tertiary)',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: historyIndex <= 0 ? 'not-allowed' : 'pointer',
+                    color: 'var(--ui-kit-color-tertiary-fore)',
+                    opacity: historyIndex <= 0 ? 0.5 : 1
+                  }}
+                >
+                  <UndoIcon size={18} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={handlesVisible}
+                  onClick={toggleHandles}
+                  title={handlesVisible ? 'Hide handles' : 'Show handles'}
+                  aria-label={handlesVisible ? 'Hide Bezier handles' : 'Show Bezier handles'}
+                  style={{
+                    background: 'var(--ui-kit-color-tertiary)',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: 'var(--ui-kit-color-tertiary-fore)'
+                  }}
+                >
+                  {handlesVisible ? <EyeIcon size={18} aria-hidden="true" /> : <XIcon size={18} aria-hidden="true" />}
+                </button>
               </div>
-            )}
+            </div>
+
+            <div
+              style={{
+                position: 'relative',
+                border: '1px solid var(--ui-kit-color-border, #E5E7EB)',
+                background: 'var(--ui-kit-color-surface, #FFFFFF)',
+                borderRadius: 6,
+                padding: 6,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                margin: 0, // rely on wrapper gap
+                width: '100%',
+                height: 240,
+                boxSizing: 'border-box'
+              }}
+            >
+              <VectorCanvas
+                ref={canvasRef}
+                width={320}
+                height={240}
+                style={{ width: 320, height: 240, display: 'block' }}
+                onShapesChange={() => refreshShapes()}
+                onSelectionChange={handleSelectionChange}
+                aria-label="Vector drawing area"
+              />
+              {shapes.length === 0 && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    pointerEvents: 'none'
+                  }}
+                >
+                  <Text size="small" tone="tertiary" style={{ textAlign: 'center' }}>
+                    <FormattedMessage {...messages.empty_canvas_hint} />
+                  </Text>
+                </div>
+              )}
+            </div>
           </div>
           <Text
             variant="bold"
