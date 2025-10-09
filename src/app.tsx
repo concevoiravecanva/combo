@@ -343,67 +343,31 @@ export default function App() {
                 Preview
               </Text>
               <div style={{ display: 'flex', gap: 6 }}>
-                <button
-                  type="button"
+                <Button
+                  ariaLabel="Clear all shapes"
+                  tooltipLabel="Clear"
+                  variant="tertiary"
+                  size="small"
+                  icon={ReloadIcon}
                   onClick={handleClear}
-                  title="Clear"
-                  aria-label="Clear all shapes"
-                  style={{
-                    background: 'var(--ui-kit-color-tertiary)',
-                    border: 'none',
-                    borderRadius: 6,
-                    padding: 6,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: 'var(--ui-kit-color-tertiary-fore)'
-                  }}
-                >
-                  <ReloadIcon size={18} aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleUndo}
+                />
+                <Button
+                  ariaLabel="Undo"
+                  tooltipLabel="Undo"
+                  variant="tertiary"
+                  size="small"
+                  icon={UndoIcon}
                   disabled={historyIndex <= 0}
-                  aria-disabled={historyIndex <= 0}
-                  title="Undo"
-                  aria-label="Undo"
-                  style={{
-                    background: 'var(--ui-kit-color-tertiary)',
-                    border: 'none',
-                    borderRadius: 6,
-                    padding: 6,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: historyIndex <= 0 ? 'not-allowed' : 'pointer',
-                    color: 'var(--ui-kit-color-tertiary-fore)',
-                    opacity: historyIndex <= 0 ? 0.5 : 1
-                  }}
-                >
-                  <UndoIcon size={18} aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={handlesVisible}
+                  onClick={handleUndo}
+                />
+                <Button
+                  ariaLabel={handlesVisible ? 'Hide Bezier handles' : 'Show Bezier handles'}
+                  tooltipLabel={handlesVisible ? 'Hide handles' : 'Show handles'}
+                  variant="tertiary"
+                  size="small"
+                  icon={handlesVisible ? XIcon : EyeIcon}
                   onClick={toggleHandles}
-                  title={handlesVisible ? 'Hide handles' : 'Show handles'}
-                  aria-label={handlesVisible ? 'Hide Bezier handles' : 'Show Bezier handles'}
-                  style={{
-                    background: 'var(--ui-kit-color-tertiary)',
-                    border: 'none',
-                    borderRadius: 6,
-                    padding: 6,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: 'var(--ui-kit-color-tertiary-fore)'
-                  }}
-                >
-                  {handlesVisible ? <EyeIcon size={18} aria-hidden="true" /> : <XIcon size={18} aria-hidden="true" />}
-                </button>
+                />
               </div>
             </div>
 
@@ -650,6 +614,7 @@ export default function App() {
                             {/* Layer controls as small tertiary icon buttons */}
                             <Button
                               ariaLabel="Move layer up"
+                              tooltipLabel="Move layer up"
                               icon={ArrowUpIcon}
                               size="small"
                               type="button"
@@ -662,6 +627,7 @@ export default function App() {
                             />
                             <Button
                               ariaLabel="Move layer down"
+                              tooltipLabel="Move layer down"
                               icon={ArrowDownIcon}
                               size="small"
                               type="button"
@@ -674,6 +640,7 @@ export default function App() {
                             />
                             <Button
                               ariaLabel="Rotate right 10 degrees"
+                              tooltipLabel="Rotate right 10°"
                               icon={RotateIcon}
                               size="small"
                               type="button"
@@ -686,6 +653,7 @@ export default function App() {
                             />
                             <Button
                               ariaLabel="Scale up 10 percent"
+                              tooltipLabel="Scale up 10%"
                               icon={PlusIcon}
                               size="small"
                               type="button"
@@ -698,6 +666,7 @@ export default function App() {
                             />
                             <Button
                               ariaLabel="Scale down 10 percent"
+                              tooltipLabel="Scale down 10%"
                               icon={MinusIcon}
                               size="small"
                               type="button"
@@ -710,6 +679,7 @@ export default function App() {
                             />
                             <Button
                               ariaLabel="Delete this shape"
+                              tooltipLabel="Delete"
                               icon={TrashIcon}
                               size="small"
                               type="button"
