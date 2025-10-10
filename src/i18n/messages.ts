@@ -46,7 +46,7 @@ export const messages = defineMessages({
     description: 'Heading for layers panel'
   },
   help_heading: {
-    defaultMessage: 'Help / Shortcuts',
+    defaultMessage: 'Help',
     description: 'Expandable help section heading'
   },
   help_how_title: {
@@ -54,7 +54,7 @@ export const messages = defineMessages({
     description: 'Title inside help panel describing how the app functions'
   },
   help_usage_title: {
-    defaultMessage: 'How to use:',
+    defaultMessage: 'How to use',
     description: 'Subheading before usage instructions list'
   },
   help_list_add: {
