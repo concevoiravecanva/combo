@@ -3,6 +3,7 @@ import { Title, Button, Text, Alert } from "@canva/app-ui-kit";
 import { ArrowLeftIcon } from "@canva/app-ui-kit";
 import { FormattedMessage } from 'react-intl';
 import { messages } from './i18n/messages';
+import '@canva/app-ui-kit/styles.css';
 
 function ShortcutBox({ keys }: { keys: string[] }) {
   return (
@@ -51,10 +52,10 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
   return (
     <div
       style={{
-        background: "var(--ui-kit-color-surface)",
+        background: "var(--ui-kit-color-elevation-surface-floating-bg)",
         minHeight: "100vh",
-        width: "100%",            // ...changed from 100vw...
-        maxWidth: "100%",         // ...ensure no overflow...
+        width: "100%",
+        maxWidth: "100%",
         fontFamily: "var(--ui-kit-typography-font-family-body)",
         display: "flex",
         flexDirection: "column",
@@ -65,7 +66,7 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
       <div
         style={{
           width: "100%",
-          background: "var(--ui-kit-color-surface)",
+          background: "var(--ui-kit-color-elevation-surface-floating-bg)",
           padding: "10px 16px 8px 12px",
           display: "flex",
           alignItems: "center",
@@ -99,8 +100,8 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
           width: "100%",
           maxWidth: 420,
           margin: "0 auto",
-          padding: "24px 16px 40px 16px", // added bottom padding for breathing room
-          background: "var(--ui-kit-color-surface)",
+          padding: "24px 16px 40px 16px",
+          background: "var(--ui-kit-color-elevation-surface-floating-bg)",
           color: "var(--ui-kit-color-typography-primary)",
           fontFamily: "var(--ui-kit-typography-font-family-body)",
           overflowY: "auto",
