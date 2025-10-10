@@ -82,7 +82,7 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
           style={{ marginRight: 8 }}
         />
         <Title
-          size="small"
+          size="xsmall"
           style={{
             color: "var(--ui-kit-color-typography-secondary)",
             fontWeight: 500,
@@ -110,21 +110,23 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
       >
         <>
           {/* How the app works — Body/Medium (Bold) */}
-          <Text size="medium" variant="bold" style={{ margin: '0 0 8px 0' }}>
+          <Text size="medium" variant="bold" style={{ margin: '0 0 12px 0' }}>
             <FormattedMessage {...messages.help_how_title} />
           </Text>
 
-          {/* Combo intro — Body/Medium */}
-          <Text size="medium" style={{ margin: '0 0 12px 0' }}>
+          {/* Intro — Body/Medium */}
+          <Text size="medium" style={{ display: 'block', margin: '0 0 12px 0' }}>
             <FormattedMessage {...messages.help_intro_body} />
           </Text>
 
-          {/* How to use — Body/Medium (Bold) */}
-          <Text size="medium" variant="bold" style={{ margin: '16px 0 8px 0' }}>
-            <FormattedMessage {...messages.help_usage_title} />
-          </Text>
+          {/* How to use — Body/Medium (Bold) with guaranteed top spacing */}
+          <div style={{ marginTop: 16 }}>
+            <Text size="medium" variant="bold" style={{ display: 'block', margin: '0 0 12px 0' }}>
+              <FormattedMessage {...messages.help_usage_title} />
+            </Text>
+          </div>
 
-          <ul style={{ margin: "0 0 10px 0", paddingLeft: 16 }}>
+          <ul style={{ margin: 0, paddingLeft: 16 }}>
             <li>
               <Text>
                 <b>Add shapes:</b> Select from the shape palette to add new shapes to the canvas.
@@ -166,12 +168,15 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
               </Text>
             </li>
           </ul>
-          {/* Layers panel — Body/Medium (Bold) */}
-          <Text size="medium" variant="bold" style={{ margin: '16px 0 8px 0' }}>
-            <FormattedMessage {...messages.help_layers_title} />
-          </Text>
 
-          <ul style={{ margin: "0 0 10px 0", paddingLeft: 16 }}>
+          {/* Layers panel — Body/Medium (Bold) with same top spacing */}
+          <div style={{ marginTop: 16 }}>
+            <Text size="medium" variant="bold" style={{ display: 'block', margin: '0 0 12px 0' }}>
+              <FormattedMessage {...messages.help_layers_title} />
+            </Text>
+          </div>
+
+          <ul style={{ margin: 0, paddingLeft: 16 }}>
             <li>
               <Text>
                 <b>Swatch:</b> Change the shape’s fill color.
@@ -198,76 +203,60 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
               </Text>
             </li>
           </ul>
-          {/* Keyboard shortcuts — Body/Medium (Bold) */}
-          <Text size="medium" variant="bold" style={{ margin: '16px 0 8px 0' }}>
-            <FormattedMessage {...messages.help_kbd_title} />
-          </Text>
 
-          <ul style={{ margin: "0 0 8px", paddingLeft: 16 }}>
-            <li style={{ marginBottom: 8 }}>
+          {/* Keyboard shortcuts — Body/Medium (Bold) with same top spacing */}
+          <div style={{ marginTop: 16 }}>
+            <Text size="medium" variant="bold" style={{ display: 'block', margin: '0 0 12px 0' }}>
+              <FormattedMessage {...messages.help_kbd_title} />
+            </Text>
+          </div>
+
+          <ul style={{ margin: "0 0 4px", paddingLeft: 16 }}>
+            <li style={{ marginBottom: 4 }}>
               <Text>
                 <b>Add to design:</b>
                 <ShortcutBox keys={["Enter"]} />
               </Text>
             </li>
-            <li style={{ marginBottom: 8 }}>
+            <li style={{ marginBottom: 4 }}>
               <Text>
                 <b>Delete selection:</b>
-                {/* clear spacing between Delete and Backspace */}
                 <ShortcutBox keys={["Delete", "Backspace"]} />
               </Text>
             </li>
-            <li style={{ marginBottom: 8 }}>
+            <li style={{ marginBottom: 4 }}>
               <Text>
                 <b>Add shape:</b>
                 <ShortcutBox keys={["1", "2", "3", "4", "5", "6", "7", "8"]} />
               </Text>
             </li>
-            <li style={{ marginBottom: 8 }}>
+            <li style={{ marginBottom: 4 }}>
               <Text>
-                <b>Scale up:</b>
-                <ShortcutBox keys={["/"]} />
+                <b>Scale:</b>
+                <ShortcutBox keys={["/", "-"]} />
               </Text>
             </li>
-            <li style={{ marginBottom: 8 }}>
+            <li style={{ marginBottom: 4 }}>
               <Text>
-                <b>Scale down:</b>
-                <ShortcutBox keys={["-"]} />
+                <b>Arrange:</b>
+                <ShortcutBox keys={["]", "["]} />
               </Text>
             </li>
-            <li style={{ marginBottom: 8 }}>
-              <Text>
-                <b>Arrange up:</b>
-                <ShortcutBox keys={["]"]} />
-              </Text>
-            </li>
-            <li style={{ marginBottom: 8 }}>
-              <Text>
-                <b>Arrange down:</b>
-                <ShortcutBox keys={["["]} />
-              </Text>
-            </li>
-            <li style={{ marginBottom: 8 }}>
+            <li style={{ marginBottom: 4 }}>
               <Text>
                 <b>Undo:</b>
-                {/* two clear alternatives, with spaces in the combo */}
                 <ShortcutBox keys={["Cmd+Z", "Ctrl+Z"]} />
-              </Text>
-            </li>
-            <li style={{ marginBottom: 8 }}>
-              <Text>
-                <b>Select / multi-select:</b>
-                {/* clear alternatives, combo with spacing around + */}
-                <ShortcutBox keys={["Click", "Shift+Click"]} />
               </Text>
             </li>
           </ul>
         </>
+        {/* Spacer to ensure visible gap after "Undo" list item */}
+        <div role="presentation" style={{ height: 24 }} />
         <div>
-          <Alert tone="info" style={{ marginTop: 24 }}>
-            These keyboard shortcuts only work when the app is active. On the canvas editor, Canva's native keyboard shortcuts apply.
-          </Alert>
-        </div>
+          <Alert tone="info" style={{ margin: 0 }}>
+             These keyboard shortcuts only work when the app is active. On the canvas editor, Canva's native keyboard shortcuts apply.
+           </Alert>
+         </div>
       </div>
     </div>
   );
