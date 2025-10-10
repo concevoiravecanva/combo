@@ -110,9 +110,10 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
       >
         <>
           {/* How the app works — Body/Medium (Bold) */}
-          <Text size="medium" variant="bold" style={{ margin: '0 0 12px 0' }}>
+          <Text size="medium" variant="bold" style={{ display: 'block', margin: 0 }}>
             <FormattedMessage {...messages.help_how_title} />
           </Text>
+          <div role="presentation" style={{ height: 12 }} />
 
           {/* Intro — Body/Medium */}
           <Text size="medium" style={{ display: 'block', margin: '0 0 12px 0' }}>
@@ -120,10 +121,11 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
           </Text>
 
           {/* How to use — Body/Medium (Bold) with guaranteed top spacing */}
-          <div style={{ marginTop: 16 }}>
-            <Text size="medium" variant="bold" style={{ display: 'block', margin: '0 0 12px 0' }}>
+          <div style={{ marginTop: 24 }}>
+            <Text size="medium" variant="bold" style={{ display: 'block', margin: 0 }}>
               <FormattedMessage {...messages.help_usage_title} />
             </Text>
+            <div role="presentation" style={{ height: 12 }} />
           </div>
 
           <ul style={{ margin: 0, paddingLeft: 16 }}>
@@ -170,10 +172,11 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
           </ul>
 
           {/* Layers panel — Body/Medium (Bold) with same top spacing */}
-          <div style={{ marginTop: 16 }}>
-            <Text size="medium" variant="bold" style={{ display: 'block', margin: '0 0 12px 0' }}>
+          <div style={{ marginTop: 24 }}>
+            <Text size="medium" variant="bold" style={{ display: 'block', margin: 0 }}>
               <FormattedMessage {...messages.help_layers_title} />
             </Text>
+            <div role="presentation" style={{ height: 12 }} />
           </div>
 
           <ul style={{ margin: 0, paddingLeft: 16 }}>
@@ -205,13 +208,14 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
           </ul>
 
           {/* Keyboard shortcuts — Body/Medium (Bold) with same top spacing */}
-          <div style={{ marginTop: 16 }}>
-            <Text size="medium" variant="bold" style={{ display: 'block', margin: '0 0 12px 0' }}>
+          <div style={{ marginTop: 24 }}>
+            <Text size="medium" variant="bold" style={{ display: 'block', margin: 0 }}>
               <FormattedMessage {...messages.help_kbd_title} />
             </Text>
+            <div role="presentation" style={{ height: 12 }} />
           </div>
 
-          <ul style={{ margin: "0 0 4px", paddingLeft: 16 }}>
+          <ul style={{ margin: "0 0 4px 0", paddingLeft: 16 }}>
             <li style={{ marginBottom: 4 }}>
               <Text>
                 <b>Add to design:</b>
@@ -250,13 +254,13 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
             </li>
           </ul>
         </>
-        {/* Spacer to ensure visible gap after "Undo" list item */}
-        <div role="presentation" style={{ height: 24 }} />
+        {/* Spacer between "Undo" and the blue info alert */}
+        <div role="presentation" style={{ height: 16 }} />
         <div>
           <Alert tone="info" style={{ margin: 0 }}>
-             These keyboard shortcuts only work when the app is active. On the canvas editor, Canva's native keyboard shortcuts apply.
-           </Alert>
-         </div>
+            These keyboard shortcuts only work when the app is active. On the canvas editor, Canva's native keyboard shortcuts apply.
+          </Alert>
+        </div>
       </div>
     </div>
   );
