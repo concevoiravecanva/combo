@@ -69,6 +69,19 @@ export default function App() {
   const liveRef = useRef<HTMLDivElement|null>(null);
   const intl = useIntl();
 
+  // Track last pointer type (mouse/touch/pen) and control programmatic selection
+  const lastPointerTypeRef = useRef<'mouse' | 'touch' | 'pen' | 'unknown'>('unknown');
+  const programmaticSelectGuardRef = useRef(false);
+  const prevSelectionRef = useRef<ShapeData[]>([]);
+  const deviceIsProbablyTouchRef = useRef(false); // coarse pointer / touch-capable
+
+  // Helper to decide if current interaction should behave like touch
+  const isTouchLikeNow = () => {
+    const pt = lastPointerTypeRef.current;
+    if (pt === 'touch' || pt === 'pen') return true;
+    return deviceIsProbablyTouchRef.current;
+  };
+
   function announce(msg: string) {
     if (!liveRef.current) return;
     liveRef.current.textContent = '';
@@ -90,7 +103,36 @@ export default function App() {
   }
 
   function handleSelectionChange(sel: ShapeData[]) {
+    // If we just set selection programmatically, accept it and exit.
+    if (programmaticSelectGuardRef.current) {
+      programmaticSelectGuardRef.current = false;
+      setSelected(sel);
+      prevSelectionRef.current = sel;
+      if (sel.length === 0) announce(intl.formatMessage(messages.selection_none));
+      else if (sel.length === 1) announce(intl.formatMessage(messages.selection_one));
+      else announce(intl.formatMessage(messages.selection_many, { count: sel.length }));
+      return;
+    }
+
+    // Mobile-friendly additive selection on canvas:
+    // If last input was touch-like, and we had 1 selected, and user tapped a different one,
+    // combine them into a two-item selection.
+    const touchLike = isTouchLikeNow();
+    const prev = prevSelectionRef.current;
+    if (touchLike &&
+        prev.length === 1 &&
+        sel.length === 1 &&
+        prev[0].id !== sel[0].id) {
+      const twoIds = [prev[0].id, sel[0].id];
+      programmaticSelectGuardRef.current = true;
+      canvasRef.current?.selectShapes?.(twoIds);
+      // Wait for the next onSelectionChange (guarded) to update state/announce.
+      return;
+    }
+
+    // Default: accept selection as-is.
     setSelected(sel);
+    prevSelectionRef.current = sel;
     if (sel.length === 0) announce(intl.formatMessage(messages.selection_none));
     else if (sel.length === 1) announce(intl.formatMessage(messages.selection_one));
     else announce(intl.formatMessage(messages.selection_many, { count: sel.length }));
@@ -210,7 +252,8 @@ export default function App() {
     e: React.MouseEvent,
     id: string
   ) {
-    const multi = e.shiftKey || e.metaKey || e.ctrlKey;
+    const isTouchLike = isTouchLikeNow();
+    const multi = e.shiftKey || e.metaKey || e.ctrlKey || (isTouchLike && selected.length >= 1);
     const currentIds = selected.map((s) => s.id);
 
     if (!multi) {
@@ -239,51 +282,41 @@ export default function App() {
     canvasRef.current?.selectShapes?.(nextIds);
   }
 
+  // Detect last pointer type globally (works for canvas taps too)
   useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.repeat) return;
-      if (e.key === 'Enter') {
-        handlePushToCanva();
-      } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        handleClear();
-      } else if (e.key === 'Escape') {
-        setSelected([]);
-      } else if (/^[1-8]$/.test(e.key)) {
-        const idx = parseInt(e.key, 10) - 1;
-        if (SHAPES[idx]) handleAddShape(SHAPES[idx].key);
-      } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-
-        if (selected.length > 0 && canvasRef.current) {
-          const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
-          const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
-          const step = e.shiftKey ? 10 : 1;
-          selected.forEach(s => {
-            canvasRef.current?.nudgeShape?.(s.id, dx * step, dy * step);
-          });
-          refreshShapes(false);
-        }
-      } else if (e.key === '/' || e.key === '-') {
-    
-        if (selected.length > 0 && canvasRef.current) {
-          const scale = e.key === '/' ? 1.1 : 0.9;
-          selected.forEach(s => {
-            canvasRef.current?.scaleShapes?.([s.id], scale);
-          });
-          refreshShapes(false);
-        }
-      } else if (e.key === '[') {
-        
-        if (selected.length > 0 && canvasRef.current) {
-          selected.forEach(s => {
-            canvasRef.current?.moveLayer?.(s.id, 'down');
-          });
-          refreshShapes(false);
-        }
+    const onPD = (ev: PointerEvent) => {
+      const pt = ev.pointerType as 'mouse' | 'touch' | 'pen' | string;
+      if (pt === 'mouse' || pt === 'touch' || pt === 'pen') {
+        lastPointerTypeRef.current = pt;
+      } else {
+        lastPointerTypeRef.current = 'unknown';
       }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selected, shapes, handlesVisible, pushing, historyIndex]);
+    };
+    window.addEventListener('pointerdown', onPD, { passive: true });
+    return () => window.removeEventListener('pointerdown', onPD);
+  }, []);
+
+  // Fallback detection for touch-capable/coarse pointers (covers environments where pointerType is unreliable)
+  useEffect(() => {
+    const updateCoarse = () => {
+      try {
+        const mql = window.matchMedia?.('(pointer: coarse)');
+        const coarse = !!mql?.matches;
+        const hasTouch = (navigator as any)?.maxTouchPoints > 0;
+        deviceIsProbablyTouchRef.current = coarse || hasTouch;
+      } catch {
+        deviceIsProbablyTouchRef.current = (navigator as any)?.maxTouchPoints > 0;
+      }
+    };
+    updateCoarse();
+    // Optional: listen for changes (e.g., hybrid devices)
+    const mql = window.matchMedia?.('(pointer: coarse)');
+    const handler = () => updateCoarse();
+    if (mql && 'addEventListener' in mql) mql.addEventListener('change', handler);
+    return () => {
+      if (mql && 'removeEventListener' in mql) mql.removeEventListener('change', handler);
+    };
+  }, []);
 
   useEffect(() => {
     refreshShapes();
