@@ -191,43 +191,114 @@ export default function App() {
     setPushing(true);
     try {
       const norm = (canvasRef.current as any)?.getNormalizedShapePaths?.();
+      
       if (!norm?.paths?.length) {
         console.warn('No paths to send');
+        setPushing(false);
         return;
       }
 
-      if (norm.paths.length > 30) {
-        const svg = canvasRef.current?.exportSVG?.();
-        if (!svg) return;
-        const cleaned = svg
-          .replace(/<\?xml.*?\?>/g, '')
-          .replace(/<!DOCTYPE[\s\S]*?>/g, '')
-          .trim();
-        const blob = new Blob([cleaned], { type: 'image/svg+xml' });
+      console.log('Normalized paths:', norm);
+      console.log('Has compound paths:', norm.hasCompoundPaths);
+
+      // STRATÉGIE: Si CompoundPath détecté → utiliser SVG minimal fait à la main
+      if (norm.hasCompoundPaths) {
+        console.log('Using minimal SVG for compound paths');
+        
+        // Construire un SVG minimal et propre
+        const width = Math.max(1, Math.round(norm.viewBox.width));
+        const height = Math.max(1, Math.round(norm.viewBox.height));
+        
+        // Récupérer la couleur de la première forme (ou noir par défaut)
+        const firstColor = shapes[0]?.fillColor || '#000000';
+        
+        // Concaténer tous les chemins en un seul path avec fill-rule evenodd
+        const pathData = norm.paths.map((p: any) => {
+          let d = p.d.trim();
+          // S'assurer que le chemin est fermé
+          if (!d.match(/[zZ]\s*$/)) d += ' Z';
+          return d;
+        }).join(' ');
+        
+        // SVG minimal sans attributs superflus
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <path d="${pathData}" fill="${firstColor}" fill-rule="evenodd"/>
+</svg>`;
+        
+        console.log('Generated SVG:', svg);
+        
+        const blob = new Blob([svg], { type: 'image/svg+xml' });
         const dataUrl = await fileToDataURL(blob);
+        
         await addElementAtPoint({
           type: 'image',
           mimeType: 'image/svg+xml',
           dataUrl,
           top: 60,
           left: 60,
-          width: norm.viewBox.width || 200,
-          height: norm.viewBox.height || 200
+          width: width,
+          height: height
         });
+        
+        console.log('SVG added successfully');
+        setPushing(false);
         return;
       }
 
+      // Pour les formes normales (sans trous), essayer le format vectoriel natif
+      if (norm.paths.length <= 30) {
+        console.log('Using native vector format');
+        try {
+          await addElementAtPoint({
+            type: 'shape',
+            top: 60,
+            left: 60,
+            width: norm.viewBox.width,
+            height: norm.viewBox.height,
+            viewBox: norm.viewBox,
+            paths: norm.paths.map((p: any) => ({
+              d: p.d,
+              fill: p.fill
+            }))
+          });
+          console.log('Native vector added successfully');
+          setPushing(false);
+          return;
+        } catch (error) {
+          console.warn('Native vector failed, will try SVG fallback:', error);
+        }
+      }
+
+      // Fallback SVG pour beaucoup de chemins
+      console.log('Using SVG fallback (too many paths)');
+      const svg = canvasRef.current?.exportSVG?.();
+      if (!svg) {
+        console.error('Failed to export SVG');
+        setPushing(false);
+        return;
+      }
+      
+      let cleaned = svg
+        .replace(/<\?xml.*?\?>/g, '')
+        .replace(/<!DOCTYPE[\s\S]*?>/g, '')
+        .trim();
+      
+      const blob = new Blob([cleaned], { type: 'image/svg+xml' });
+      const dataUrl = await fileToDataURL(blob);
+      
       await addElementAtPoint({
-        type: 'shape',
+        type: 'image',
+        mimeType: 'image/svg+xml',
+        dataUrl,
         top: 60,
         left: 60,
-        width: norm.viewBox.width,
-        height: norm.viewBox.height,
-        viewBox: norm.viewBox,
-        paths: norm.paths
+        width: norm.viewBox.width || 200,
+        height: norm.viewBox.height || 200
       });
+      
+      console.log('SVG fallback added successfully');
     } catch (e) {
-      console.error('Canva insertion failed', e);
+      console.error('Canva insertion failed:', e);
     } finally {
       setPushing(false);
     }

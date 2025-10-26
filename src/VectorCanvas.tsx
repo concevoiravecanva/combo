@@ -31,6 +31,7 @@ export interface VectorCanvasRef {
   getNormalizedShapePaths?: () => {
     viewBox: { top: number; left: number; width: number; height: number };
     paths: { d: string; fill: { color: string } }[];
+    hasCompoundPaths?: boolean; // Indicateur pour forcer l'export SVG
   };
   rotateShape?: (id: string, angle: number) => void;
 }
@@ -60,8 +61,8 @@ function regenerateAllHandles() {
   if (!main || !handles) return;
   handles.removeChildren();
   main.children.forEach((c: any) => {
-    if (c.data?.id && c.segments) {
-      createHandlesForPath(c, handles, "#007bff");
+    if (c.data?.id) {
+      createHandlesForItem(c, handles, "#007bff");
     }
   });
   handles.bringToFront();
@@ -76,6 +77,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
   const historyIndexRef = useRef<number>(-1);
   const actionOpenRef = useRef(false);
   const preActionIndexRef = useRef<number | null>(null);
+  const [handlesVisible, setHandlesVisibleState] = React.useState(true);
 
   // ---------- Helpers ----------
   function getShapesList(): ShapeData[] {
@@ -321,6 +323,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
   }
 
   function setHandlesVisibility(visible: boolean) {
+    setHandlesVisibleState(visible);
     const handles = findHandlesLayer();
     if (!handles) return;
     handles.visible = visible;
@@ -434,13 +437,44 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     const b = findShapeById(idB);
     if (!a || !b) { endUserAction(false); return; }
 
+    // CRITIQUE: Pour subtract, toujours faire "grand - petit"
+    let A = a, B = b;
+    if (op === 'subtract') {
+      try {
+        const getArea = (item: any) => {
+          try {
+            return Math.abs(item.area ?? (item.bounds?.width * item.bounds?.height) ?? 0);
+          } catch { return 0; }
+        };
+        
+        const areaA = getArea(a);
+        const areaB = getArea(b);
+        
+        // Détecter l'inclusion totale
+        const boundsAContainsB = a.bounds?.contains?.(b.bounds);
+        const boundsBContainsA = b.bounds?.contains?.(a.bounds);
+        
+        if (boundsAContainsB && !boundsBContainsA) {
+          A = a; B = b; // A contient B → A - B
+        } else if (boundsBContainsA && !boundsAContainsB) {
+          A = b; B = a; // B contient A → B - A
+        } else if (areaA > areaB) {
+          A = a; B = b; // Fallback: soustraire le plus petit du plus grand
+        } else {
+          A = b; B = a;
+        }
+      } catch (e) {
+        console.error('Error in subtract reordering:', e);
+      }
+    }
+
     let result: any;
     try {
       switch (op) {
-        case 'union':     result = a.unite(b); break;
-        case 'subtract':  result = a.subtract(b); break;
-        case 'intersect': result = a.intersect(b); break;
-        case 'exclude':   result = a.exclude(b); break;
+        case 'union':     result = A.unite(B); break;
+        case 'subtract':  result = A.subtract(B); break;
+        case 'intersect': result = A.intersect(B); break;
+        case 'exclude':   result = A.exclude(B); break;
       }
     } catch {
       endUserAction(false);
@@ -448,17 +482,17 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     }
     if (!result) { endUserAction(false); return; }
 
-    const fillColor = a.data?.fillColor || b.data?.fillColor || '#ff0000';
+    const fillColor = A.data?.fillColor || B.data?.fillColor || '#ff0000';
 
     const main = findMainLayer();
     const handlesLayer = findHandlesLayer();
     if (!main || !handlesLayer) { endUserAction(false); return; }
 
-    if (a.data?.id) removeHandlesForPath(a.data.id);
-    if (b.data?.id) removeHandlesForPath(b.data.id);
+    if (A.data?.id) removeHandlesForPath(A.data.id);
+    if (B.data?.id) removeHandlesForPath(B.data.id);
 
-    try { a.remove(); } catch {}
-    try { b.remove(); } catch {}
+    try { A.remove(); } catch {}
+    try { B.remove(); } catch {}
 
     const createdIds: string[] = [];
     const baseId = 'cmb_' + Math.random().toString(36).slice(2, 9);
@@ -474,17 +508,31 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       main.addChild(result);
       createdIds.push(baseId);
     } else if (result instanceof paper.CompoundPath) {
-      const children = result.children.slice();
-      let visibleIdx = 0;
-      children.forEach((child: any) => {
-        if (!child.segments) return;
-        if (op !== 'exclude' && isHole(child, children)) return;
-        const childId = baseId + '_p' + visibleIdx++;
-        const np = cloneChildPath(child, fillColor, childId);
-        main.addChild(np);
-        createdIds.push(childId);
-      });
-      try { result.remove(); } catch {}
+      // TOUJOURS garder le CompoundPath pour subtract (préserve le trou dans l'éditeur)
+      if (op === 'subtract') {
+        result.fillColor = new paper.Color(fillColor);
+        result.data = { 
+          id: baseId, 
+          type: 'shape', 
+          fillColor, 
+          size: Math.max(result.bounds.width, result.bounds.height),
+          isCompound: true // Marqueur pour l'export
+        };
+        main.addChild(result);
+        createdIds.push(baseId);
+      } else {
+        const children = result.children.slice();
+        let visibleIdx = 0;
+        children.forEach((child: any) => {
+          if (!child.segments) return;
+          if (op !== 'exclude' && isHole(child, children)) return;
+          const childId = baseId + '_p' + visibleIdx++;
+          const np = cloneChildPath(child, fillColor, childId);
+          main.addChild(np);
+          createdIds.push(childId);
+        });
+        try { result.remove(); } catch {}
+      }
     } else if (result.children && result.children.length) {
       let idx = 0;
       result.children.forEach((ch: any) => {
@@ -521,13 +569,16 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
 
   function getNormalizedShapePaths() {
     const main = findMainLayer();
-    if (!main) return { viewBox: { top: 0, left: 0, width: 0, height: 0 }, paths: [] as any[] };
+    if (!main) return { viewBox: { top: 0, left: 0, width: 0, height: 0 }, paths: [] as any[], hasCompoundPaths: false };
 
     const shapeItems: any[] = [];
     main.children.forEach((c: any) => { if (c.data?.id) shapeItems.push(c); });
     if (!shapeItems.length) {
-      return { viewBox: { top: 0, left: 0, width: 0, height: 0 }, paths: [] };
+      return { viewBox: { top: 0, left: 0, width: 0, height: 0 }, paths: [], hasCompoundPaths: false };
     }
+
+    // Détecter si on a des CompoundPath (nécessite export SVG)
+    const hasCompoundPaths = shapeItems.some(it => it.data?.isCompound === true);
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     shapeItems.forEach(it => {
@@ -558,18 +609,13 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       clone.remove();
     }
 
-    function isHole(candidate: any, siblings: any[]) {
-      const center = candidate.bounds.center;
-      return siblings.some(s => s !== candidate && s.contains(center));
-    }
-
     function exportItem(it: any) {
       const color = it.data?.fillColor || (it.fillColor ? it.fillColor.toCSS?.(true) : '#000000') || '#000000';
 
       if (it instanceof paper.CompoundPath) {
         const children = it.children.slice();
         children.forEach(child => {
-          if (isHole(child, children)) return; // ignorer trou
+          if (!child.segments) return;
           exportSinglePath(child, color);
         });
       } else if (it instanceof paper.Path) {
@@ -584,7 +630,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       if (paths.length >= 120) break;
     }
 
-    return { viewBox: { top: 0, left: 0, width, height }, paths };
+    return { viewBox: { top: 0, left: 0, width, height }, paths, hasCompoundPaths };
   }
 
   // ---------- Init ----------
@@ -637,78 +683,85 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     let draggedHandle: any = null;
     let draggedHandleType: string | null = null;
     let originalPath: any = null;
+    let originalChildIdx: number | undefined = undefined;
     let originalSegIdx = -1;
     let draggedItemIds = new Set<string>();
+    let initialDownPoint: any = null;
+    let altPrimed = false;
     let somethingChanged = false;
 
-    let altPrimed = false;
-    let initialDownPoint: paper.Point | null = null;
-
-    function hitTestHandle(point: any) {
-      return paper.project.hitTest(point, {
-        tolerance: 10,
-        fill: true,
-        stroke: false,
-        match: (hit: any) => {
-          const d = hit?.item?.data;
-          return !!d && (d.type === "point" || d.type === "handleIn" || d.type === "handleOut");
-        }
-      });
-    }
-
     tool.onMouseDown = (event: any) => {
-      initialDownPoint = event.point.clone();
+      const handlesLayer = findHandlesLayer();
+      const hitHandle = handlesVisible ? handlesLayer?.hitTest?.(event.point, { fill: true, tolerance: 8 }) : null;
 
-      startUserAction(); 
-
-      const hitHandle = hitTestHandle(event.point);
-
+      // Si on clique sur une poignée de Bézier
       if (hitHandle?.item?.data) {
         draggedHandle = hitHandle.item;
         draggedHandleType = draggedHandle.data.type;
         const pathId = draggedHandle.data.pathId;
         originalSegIdx = draggedHandle.data.segIdx;
+        originalChildIdx = draggedHandle.data.childIdx;
+
         originalPath = findMainLayer()?.children.find((c: any) => c.data?.id === pathId);
 
-        if (originalPath && originalPath.segments[originalSegIdx]) {
+        // Obtenir le segment correct pour Path simple OU CompoundPath
+        let target: any = null;
+        if (originalPath?.segments) {
+          target = originalPath;
+        } else if (typeof originalChildIdx === 'number' && originalPath?.children?.[originalChildIdx]) {
+          target = originalPath.children[originalChildIdx];
+        }
+
+        if (target && target.segments && target.segments[originalSegIdx]) {
           if (draggedHandleType === 'point' && event.modifiers.alt) {
-            const seg = originalPath.segments[originalSegIdx];
+            const seg = target.segments[originalSegIdx];
             if ((seg.handleIn?.isZero?.() || (seg.handleIn.x === 0 && seg.handleIn.y === 0)) &&
                 (seg.handleOut?.isZero?.() || (seg.handleOut.x === 0 && seg.handleOut.y === 0))) {
               altPrimed = true;
             }
           }
+          initialDownPoint = event.point.clone();
           isDragging = true;
           somethingChanged = false;
-          event.stop();
-          return;
         }
+        return; // Important : ne pas continuer si on a cliqué sur une poignée
       }
 
-      const hit = paper.project.hitTest(event.point, {
+      // Sinon, on clique sur une forme
+      const hitLayer = findMainLayer();
+      const hitResult = hitLayer?.hitTest?.(event.point, {
         fill: true,
         stroke: true,
-        segments: true,
         tolerance: 8
       });
-      const shift = event.modifiers.shift;
-
-      if (hit?.item) {
-        const shapeItem = resolveShapeWithId(hit.item);
-        if (shapeItem?.data?.id) {
-          if (shift) toggleSelectShape(shapeItem.data.id);
-          else if (!selectedIdsRef.current.has(shapeItem.data.id)) selectShapes([shapeItem.data.id]);
-          draggedItemIds = new Set(selectedIdsRef.current);
-          isDragging = true;
-          somethingChanged = false;
-          event.stop();
-          return;
-        }
+      const hit = hitResult?.item;
+      
+      // Pour CompoundPath, on doit remonter au parent
+      let hitItem = hit;
+      if (hitItem && !hitItem.data?.id && hitItem.parent?.data?.id) {
+        hitItem = hitItem.parent;
       }
 
-      endUserAction(false);
-      selectShapes([]);
-      isDragging = false;
+      if (hitItem && hitItem.data?.id) {
+        const shapeId = hitItem.data.id;
+        
+        // Gestion de la sélection multiple avec modificateurs
+        if (event.modifiers.shift || event.modifiers.meta || event.modifiers.control) {
+          toggleSelectShape(shapeId);
+        } else {
+          // Si la forme cliquée n'est PAS déjà sélectionnée, la sélectionner seule
+          if (!selectedIdsRef.current.has(shapeId)) {
+            selectShapes([shapeId]);
+          }
+          // Sinon, on garde la sélection actuelle (permet de déplacer plusieurs formes)
+        }
+        
+        // Préparer le déplacement de toutes les formes sélectionnées
+        const selIds = new Set(getSelectedIds());
+        draggedItemIds = selIds;
+        isDragging = true;
+        somethingChanged = false;
+      }
     };
 
     tool.onMouseDrag = (event: any) => {
@@ -719,8 +772,17 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       }
 
       if (draggedHandle && draggedHandleType && originalPath && originalSegIdx >= 0) {
-        const segment = originalPath.segments[originalSegIdx];
+        // FIX CRITIQUE: Obtenir le segment correct pour Path simple OU CompoundPath
+        let target: any = null;
+        if (originalPath.segments) {
+          target = originalPath;
+        } else if (typeof originalChildIdx === 'number' && originalPath.children?.[originalChildIdx]) {
+          target = originalPath.children[originalChildIdx];
+        }
+
+        const segment = target?.segments?.[originalSegIdx];
         if (!segment) return;
+
         try {
           if (draggedHandleType === "point") {
             if (altPrimed && initialDownPoint) {
@@ -728,7 +790,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
               if (vec.length > 10) {
                 segment.handleOut = vec.normalize(vec.length * 0.5);
                 segment.handleIn = vec.normalize(-vec.length * 0.5);
-                ensureSegmentHandleVisuals(originalPath, originalSegIdx);
+                ensureSegmentHandleVisuals(originalPath, originalSegIdx, originalChildIdx);
                 altPrimed = false;
               }
             }
@@ -738,30 +800,25 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
           } else if (draggedHandleType === "handleOut") {
             segment.handleOut = segment.handleOut.add(event.delta);
           }
-          updateHandlesForSegment(originalPath, originalSegIdx);
+          
+          updateHandlesForSegment(originalPath, originalSegIdx, originalChildIdx);
           paper.view.update();
           somethingChanged = true;
         } catch (e) {
-          console.error("Error during handle drag:", e);
+          console.error('Handle drag error:', e);
         }
-        return;
-      }
-
-      const delta = event.delta;
-      const main = findMainLayer();
-      if (!main) return;
-      main.children.forEach((child: any) => {
-        if (child.data?.id && draggedItemIds.has(child.data.id)) {
-          child.position = child.position.add(delta);
-          if (child.segments) {
-            for (let i = 0; i < child.segments.length; i++) {
-              updateHandlesForSegment(child, i);
-            }
+      } else if (draggedItemIds.size > 0) {
+        const main = findMainLayer();
+        if (!main) return;
+        main.children.forEach((c: any) => {
+          if (c.data?.id && draggedItemIds.has(c.data.id)) {
+            c.position = c.position.add(event.delta);
           }
-          somethingChanged = true;
-        }
-      });
-      paper.view.update();
+        });
+        regenerateAllHandles();
+        paper.view.update();
+        somethingChanged = true;
+      }
     };
 
     tool.onMouseUp = () => {
@@ -770,22 +827,22 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       draggedHandle = null;
       draggedHandleType = null;
       originalPath = null;
+      originalChildIdx = undefined;
       originalSegIdx = -1;
+      draggedItemIds.clear();
       somethingChanged = false;
       altPrimed = false;
       initialDownPoint = null;
-      if (somethingChanged) {
-        props.onShapesChange?.();
-      }
     };
 
     tool.activate();
-    toolRef.current = tool;
+
     return () => {
-      try { tool.remove(); } catch {}
-      toolRef.current = null;
+      try {
+        tool.remove();
+      } catch {}
     };
-  }, []);
+  }, [handlesVisible, props]);
 
   function rotateShape(id: string, angle: number) {
     const item = (typeof findItemByDataId === 'function' ? findItemByDataId(id) : findShapeById(id));
@@ -861,6 +918,32 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
 export default VectorCanvas;
 
 // ----------------- HANDLE UTILITIES -----------------
+
+// Nouvelle fonction qui gère Path ET CompoundPath
+function createHandlesForItem(item: any, handlesLayer: any, color: string = "#007bff") {
+  if (!item || !handlesLayer || !item.data?.id) return;
+  removeHandlesForPath(item.data.id);
+  
+  if (item.segments) {
+    // C'est un Path simple
+    item.segments.forEach((seg: any, idx: number) => {
+      createAnchorAndHandles(item, seg, idx, handlesLayer, color);
+    });
+  } else if (item.children) {
+    // C'est un CompoundPath
+    item.children.forEach((child: any, childIdx: number) => {
+      if (child.segments) {
+        child.segments.forEach((seg: any, segIdx: number) => {
+          createAnchorAndHandlesForCompound(item, child, seg, childIdx, segIdx, handlesLayer, color);
+        });
+      }
+    });
+  }
+  
+  handlesLayer.bringToFront();
+  paper.view.update();
+}
+
 function createHandlesForPath(path: any, handlesLayer: any, color: string = "#007bff") {
   if (!path || !handlesLayer || !path.segments || !path.data?.id) return;
   removeHandlesForPath(path.data.id);
@@ -871,7 +954,7 @@ function createHandlesForPath(path: any, handlesLayer: any, color: string = "#00
   paper.view.update();
 }
 
-function createAnchorAndHandles(path:any, seg:any, idx:number, handlesLayer:any, color:string){
+function createAnchorAndHandles(path: any, seg: any, idx: number, handlesLayer: any, color: string) {
   const pt = new paper.Path.Circle(seg.point, 5);
   pt.fillColor = color;
   pt.strokeColor = "#fff";
@@ -910,47 +993,127 @@ function createAnchorAndHandles(path:any, seg:any, idx:number, handlesLayer:any,
   }
 }
 
-function ensureSegmentHandleVisuals(path:any, segIdx:number){
-  const handles = findHandlesLayer();
-  if(!handles) return;
-  const seg = path.segments[segIdx];
-  handles.children
-    .filter((h:any)=>h.data?.pathId===path.data.id && h.data.segIdx===segIdx)
-    .forEach((h:any)=>h.remove());
-  createAnchorAndHandles(path, seg, segIdx, handles, "#007bff");
+// Nouvelle fonction pour les segments de CompoundPath
+function createAnchorAndHandlesForCompound(parent: any, child: any, seg: any, childIdx: number, segIdx: number, handlesLayer: any, color: string) {
+  const pt = new paper.Path.Circle(seg.point, 5);
+  pt.fillColor = color;
+  pt.strokeColor = "#fff";
+  pt.strokeWidth = 2;
+  pt.data = { pathId: parent.data.id, childIdx, segIdx, type: "point" };
+  handlesLayer.addChild(pt);
+
+  if (seg.handleIn && (!seg.handleIn.isZero?.() && (seg.handleIn.x !== 0 || seg.handleIn.y !== 0))) {
+    const hIn = new paper.Path.Circle(seg.point.add(seg.handleIn), 4);
+    hIn.fillColor = color;
+    hIn.strokeColor = "#fff";
+    hIn.strokeWidth = 2;
+    hIn.data = { pathId: parent.data.id, childIdx, segIdx, type: "handleIn" };
+    handlesLayer.addChild(hIn);
+    const lineIn = new paper.Path.Line(seg.point, seg.point.add(seg.handleIn));
+    lineIn.strokeColor = color;
+    lineIn.strokeWidth = 1;
+    lineIn.dashArray = [3, 2];
+    lineIn.data = { pathId: parent.data.id, childIdx, segIdx, type: "lineIn" };
+    handlesLayer.addChild(lineIn);
+  }
+
+  if (seg.handleOut && (!seg.handleOut.isZero?.() && (seg.handleOut.x !== 0 || seg.handleOut.y !== 0))) {
+    const hOut = new paper.Path.Circle(seg.point.add(seg.handleOut), 4);
+    hOut.fillColor = color;
+    hOut.strokeColor = "#fff";
+    hOut.strokeWidth = 2;
+    hOut.data = { pathId: parent.data.id, childIdx, segIdx, type: "handleOut" };
+    handlesLayer.addChild(hOut);
+    const lineOut = new paper.Path.Line(seg.point, seg.point.add(seg.handleOut));
+    lineOut.strokeColor = color;
+    lineOut.strokeWidth = 1;
+    lineOut.dashArray = [3, 2];
+    lineOut.data = { pathId: parent.data.id, childIdx, segIdx, type: "lineOut" };
+    handlesLayer.addChild(lineOut);
+  }
 }
 
-function updateHandlesForSegment(path:any, segIdx:number){
+function ensureSegmentHandleVisuals(parentItem: any, segIdx: number, childIdx?: number) {
   const handles = findHandlesLayer();
-  if(!handles) return;
-  const seg = path.segments[segIdx];
-  if(!seg) return;
-  const pathId = path.data.id;
+  if (!handles) return;
 
+  // Obtenir le bon target (Path ou enfant de CompoundPath)
+  let target: any = null;
+  if (parentItem.segments) {
+    target = parentItem;
+  } else if (typeof childIdx === 'number' && parentItem.children?.[childIdx]) {
+    target = parentItem.children[childIdx];
+  }
+  
+  if (!target) return;
+  const seg = target.segments[segIdx];
+  if (!seg) return;
+
+  // Supprimer les anciens visuels pour ce segment
+  handles.children
+    .filter((h: any) => 
+      h.data?.pathId === parentItem.data.id && 
+      h.data.segIdx === segIdx && 
+      h.data.childIdx === childIdx
+    )
+    .forEach((h: any) => h.remove());
+
+  // Recréer les visuels
+  if (typeof childIdx === 'number') {
+    createAnchorAndHandlesForCompound(parentItem, target, seg, childIdx, segIdx, handles, "#007bff");
+  } else {
+    createAnchorAndHandles(parentItem, seg, segIdx, handles, "#007bff");
+  }
+}
+
+function updateHandlesForSegment(parentItem: any, segIdx: number, childIdx?: number) {
+  const handles = findHandlesLayer();
+  if (!handles) return;
+
+  // Obtenir le bon target
+  let target: any = null;
+  if (parentItem.segments) {
+    target = parentItem;
+  } else if (typeof childIdx === 'number' && parentItem.children?.[childIdx]) {
+    target = parentItem.children[childIdx];
+  }
+  
+  if (!target) return;
+  const seg = target.segments[segIdx];
+  if (!seg) return;
+  
+  const pathId = parentItem.data.id;
   const needIn = !!seg.handleIn && !(seg.handleIn.x === 0 && seg.handleIn.y === 0);
   const needOut = !!seg.handleOut && !(seg.handleOut.x === 0 && seg.handleOut.y === 0);
 
+  // Mettre à jour les positions existantes
   handles.children
-    .filter((h:any)=>h.data?.pathId===pathId && h.data.segIdx===segIdx)
-    .forEach((h:any)=>{
-      switch(h.data.type){
+    .filter((h: any) => 
+      h.data?.pathId === pathId && 
+      h.data.segIdx === segIdx && 
+      h.data.childIdx === childIdx
+    )
+    .forEach((h: any) => {
+      switch (h.data.type) {
         case 'point':
           h.position = seg.point;
           break;
         case 'handleIn':
-          if(needIn) h.position = seg.point.add(seg.handleIn); else h.remove();
+          if (needIn) h.position = seg.point.add(seg.handleIn);
+          else h.remove();
           break;
         case 'lineIn':
-          if(needIn){
+          if (needIn) {
             h.firstSegment.point = seg.point;
             h.lastSegment.point = seg.point.add(seg.handleIn);
           } else h.remove();
           break;
         case 'handleOut':
-          if(needOut) h.position = seg.point.add(seg.handleOut); else h.remove();
+          if (needOut) h.position = seg.point.add(seg.handleOut);
+          else h.remove();
           break;
         case 'lineOut':
-          if(needOut){
+          if (needOut) {
             h.firstSegment.point = seg.point;
             h.lastSegment.point = seg.point.add(seg.handleOut);
           } else h.remove();
@@ -958,32 +1121,52 @@ function updateHandlesForSegment(path:any, segIdx:number){
       }
     });
 
-  if(needIn){
-    const hasIn = handles.children.some((h:any)=>h.data?.pathId===pathId && h.data.segIdx===segIdx && h.data.type==='handleIn');
-    if(!hasIn){
-      const hIn = new paper.Path.Circle(seg.point.add(seg.handleIn),4);
-      hIn.fillColor="#007bff"; hIn.strokeColor="#fff"; hIn.strokeWidth=2;
-      hIn.data={pathId, segIdx, type:'handleIn'};
-      handles.addChild(hIn);
-      const lineIn = new paper.Path.Line(seg.point, seg.point.add(seg.handleIn));
-      lineIn.strokeColor="#007bff"; lineIn.strokeWidth=1; lineIn.dashArray=[3,2];
-      lineIn.data={pathId, segIdx, type:'lineIn'};
-      handles.addChild(lineIn);
-    }
+  // Créer les handles manquants
+  const hasIn = handles.children.some((h: any) => 
+    h.data?.pathId === pathId && 
+    h.data.segIdx === segIdx && 
+    h.data.childIdx === childIdx && 
+    h.data.type === 'handleIn'
+  );
+  const hasOut = handles.children.some((h: any) => 
+    h.data?.pathId === pathId && 
+    h.data.segIdx === segIdx && 
+    h.data.childIdx === childIdx && 
+    h.data.type === 'handleOut'
+  );
+
+  if (needIn && !hasIn) {
+    const hIn = new paper.Path.Circle(seg.point.add(seg.handleIn), 4);
+    hIn.fillColor = "#007bff";
+    hIn.strokeColor = "#fff";
+    hIn.strokeWidth = 2;
+    hIn.data = { pathId, childIdx, segIdx, type: 'handleIn' };
+    handles.addChild(hIn);
+    
+    const lineIn = new paper.Path.Line(seg.point, seg.point.add(seg.handleIn));
+    lineIn.strokeColor = "#007bff";
+    lineIn.strokeWidth = 1;
+    lineIn.dashArray = [3, 2];
+    lineIn.data = { pathId, childIdx, segIdx, type: 'lineIn' };
+    handles.addChild(lineIn);
   }
-  if(needOut){
-    const hasOut = handles.children.some((h:any)=>h.data?.pathId===pathId && h.data.segIdx===segIdx && h.data.type==='handleOut');
-    if(!hasOut){
-      const hOut = new paper.Path.Circle(seg.point.add(seg.handleOut),4);
-      hOut.fillColor="#007bff"; hOut.strokeColor="#fff"; hOut.strokeWidth=2;
-      hOut.data={pathId, segIdx, type:'handleOut'};
-      handles.addChild(hOut);
-      const lineOut = new paper.Path.Line(seg.point, seg.point.add(seg.handleOut));
-      lineOut.strokeColor="#007bff"; lineOut.strokeWidth=1; lineOut.dashArray=[3,2];
-      lineOut.data={pathId, segIdx, type:'lineOut'};
-      handles.addChild(lineOut);
-    }
+
+  if (needOut && !hasOut) {
+    const hOut = new paper.Path.Circle(seg.point.add(seg.handleOut), 4);
+    hOut.fillColor = "#007bff";
+    hOut.strokeColor = "#fff";
+    hOut.strokeWidth = 2;
+    hOut.data = { pathId, childIdx, segIdx, type: 'handleOut' };
+    handles.addChild(hOut);
+    
+    const lineOut = new paper.Path.Line(seg.point, seg.point.add(seg.handleOut));
+    lineOut.strokeColor = "#007bff";
+    lineOut.strokeWidth = 1;
+    lineOut.dashArray = [3, 2];
+    lineOut.data = { pathId, childIdx, segIdx, type: 'lineOut' };
+    handles.addChild(lineOut);
   }
+
   handles.bringToFront();
   paper.view.update();
 }
@@ -991,25 +1174,16 @@ function updateHandlesForSegment(path:any, segIdx:number){
 function removeHandlesForPath(pathId: string) {
   const handles = findHandlesLayer();
   if (!handles) return;
-  handles.children
-    .filter((h: any) => h.data?.pathId === pathId)
-    .forEach((h: any) => h.remove());
+  handles.children.filter((c: any) => c.data?.pathId === pathId).forEach((c: any) => c.remove());
 }
 
 function purgeOrphanHandles() {
-  const handles = findHandlesLayer();
   const main = findMainLayer();
-  if (!handles || !main) return;
-  const ids = new Set(main.children.filter((c: any) => c.data?.id).map((c: any) => c.data.id));
-  handles.children
-    .filter((h: any) => h.data?.pathId && !ids.has(h.data.pathId))
-    .forEach((h: any) => h.remove());
-}
-
-function resolveShapeWithId(item: any) {
-  let current = item;
-  while (current && (!current.data || !current.data.id) && current.parent) {
-    current = current.parent;
-  }
-  return current?.data?.id ? current : null;
+  const handles = findHandlesLayer();
+  if (!main || !handles) return;
+  const validIds = new Set<string>();
+  main.children.forEach((c: any) => { if (c.data?.id) validIds.add(c.data.id); });
+  handles.children.forEach((h: any) => {
+    if (h.data?.pathId && !validIds.has(h.data.pathId)) h.remove();
+  });
 }
