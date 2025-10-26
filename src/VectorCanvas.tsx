@@ -31,7 +31,7 @@ export interface VectorCanvasRef {
   getNormalizedShapePaths?: () => {
     viewBox: { top: number; left: number; width: number; height: number };
     paths: { d: string; fill: { color: string } }[];
-    hasCompoundPaths?: boolean; // Indicateur pour forcer l'export SVG
+    hasCompoundPaths?: boolean; // Flag to force SVG export
   };
   rotateShape?: (id: string, angle: number) => void;
 }
@@ -211,7 +211,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     return false;
   }
 
-  // ---------- Shape ops ----------
+  // ---------- Shape operations ----------
 
   function addShape(type: string, color: string, size: number, strokeColor?: string, x?: number, y?: number): string {
     startUserAction();
@@ -437,7 +437,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     const b = findShapeById(idB);
     if (!a || !b) { endUserAction(false); return; }
 
-    // CRITIQUE: Pour subtract, toujours faire "grand - petit"
+    // CRITICAL: For subtract, always do "large - small"
     let A = a, B = b;
     if (op === 'subtract') {
       try {
@@ -450,16 +450,16 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
         const areaA = getArea(a);
         const areaB = getArea(b);
         
-        // Détecter l'inclusion totale
+        // Detect total inclusion
         const boundsAContainsB = a.bounds?.contains?.(b.bounds);
         const boundsBContainsA = b.bounds?.contains?.(a.bounds);
         
         if (boundsAContainsB && !boundsBContainsA) {
-          A = a; B = b; // A contient B → A - B
+          A = a; B = b; // A contains B → A - B
         } else if (boundsBContainsA && !boundsAContainsB) {
-          A = b; B = a; // B contient A → B - A
+          A = b; B = a; // B contains A → B - A
         } else if (areaA > areaB) {
-          A = a; B = b; // Fallback: soustraire le plus petit du plus grand
+          A = a; B = b; // Fallback: subtract smaller from larger
         } else {
           A = b; B = a;
         }
@@ -508,7 +508,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       main.addChild(result);
       createdIds.push(baseId);
     } else if (result instanceof paper.CompoundPath) {
-      // TOUJOURS garder le CompoundPath pour subtract (préserve le trou dans l'éditeur)
+      // ALWAYS keep CompoundPath for subtract (preserves hole in editor)
       if (op === 'subtract') {
         result.fillColor = new paper.Color(fillColor);
         result.data = { 
@@ -516,7 +516,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
           type: 'shape', 
           fillColor, 
           size: Math.max(result.bounds.width, result.bounds.height),
-          isCompound: true // Marqueur pour l'export
+          isCompound: true // Marker for export
         };
         main.addChild(result);
         createdIds.push(baseId);
@@ -577,7 +577,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       return { viewBox: { top: 0, left: 0, width: 0, height: 0 }, paths: [], hasCompoundPaths: false };
     }
 
-    // Détecter si on a des CompoundPath (nécessite export SVG)
+    // Detect if we have CompoundPaths (requires SVG export)
     const hasCompoundPaths = shapeItems.some(it => it.data?.isCompound === true);
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -652,7 +652,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
     handles.bringToFront();
     regenerateAllHandles();
     if (historyRef.current.length === 0) {
-      pushHistoryFromCurrentProject(); // snapshot initial
+      pushHistoryFromCurrentProject(); // initial snapshot
     }
 
     return () => {
@@ -694,7 +694,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       const handlesLayer = findHandlesLayer();
       const hitHandle = handlesVisible ? handlesLayer?.hitTest?.(event.point, { fill: true, tolerance: 8 }) : null;
 
-      // Si on clique sur une poignée de Bézier
+      // If clicking on a Bézier handle
       if (hitHandle?.item?.data) {
         draggedHandle = hitHandle.item;
         draggedHandleType = draggedHandle.data.type;
@@ -704,7 +704,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
 
         originalPath = findMainLayer()?.children.find((c: any) => c.data?.id === pathId);
 
-        // Obtenir le segment correct pour Path simple OU CompoundPath
+        // Get correct segment for simple Path OR CompoundPath
         let target: any = null;
         if (originalPath?.segments) {
           target = originalPath;
@@ -724,10 +724,10 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
           isDragging = true;
           somethingChanged = false;
         }
-        return; // Important : ne pas continuer si on a cliqué sur une poignée
+        return; // Important: don't continue if we clicked on a handle
       }
 
-      // Sinon, on clique sur une forme
+      // Otherwise, clicking on a shape
       const hitLayer = findMainLayer();
       const hitResult = hitLayer?.hitTest?.(event.point, {
         fill: true,
@@ -736,7 +736,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       });
       const hit = hitResult?.item;
       
-      // Pour CompoundPath, on doit remonter au parent
+      // For CompoundPath, we must go up to the parent
       let hitItem = hit;
       if (hitItem && !hitItem.data?.id && hitItem.parent?.data?.id) {
         hitItem = hitItem.parent;
@@ -745,20 +745,26 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       if (hitItem && hitItem.data?.id) {
         const shapeId = hitItem.data.id;
         
-        // Gestion de la sélection multiple avec modificateurs
+        // Multi-selection handling with modifiers
         if (event.modifiers.shift || event.modifiers.meta || event.modifiers.control) {
+          // Multi-select: toggle
           toggleSelectShape(shapeId);
+          // Get selection AFTER toggle
+          draggedItemIds = new Set(selectedIdsRef.current);
         } else {
-          // Si la forme cliquée n'est PAS déjà sélectionnée, la sélectionner seule
-          if (!selectedIdsRef.current.has(shapeId)) {
-            selectShapes([shapeId]);
+          // Simple click - CRITICAL FIX: Update selection directly without callback
+          const currentSelection = selectedIdsRef.current;
+          
+          // If clicking on a shape that's not the only selected shape
+          if (currentSelection.size !== 1 || !currentSelection.has(shapeId)) {
+            // Update selection silently (no emitSelectionChange during mousedown)
+            selectedIdsRef.current = new Set([shapeId]);
           }
-          // Sinon, on garde la sélection actuelle (permet de déplacer plusieurs formes)
+          // Now selection is correct, prepare drag
+          draggedItemIds = new Set(selectedIdsRef.current);
         }
         
-        // Préparer le déplacement de toutes les formes sélectionnées
-        const selIds = new Set(getSelectedIds());
-        draggedItemIds = selIds;
+        // In all cases, prepare movement immediately
         isDragging = true;
         somethingChanged = false;
       }
@@ -772,7 +778,7 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       }
 
       if (draggedHandle && draggedHandleType && originalPath && originalSegIdx >= 0) {
-        // FIX CRITIQUE: Obtenir le segment correct pour Path simple OU CompoundPath
+        // CRITICAL FIX: Get correct segment for simple Path OR CompoundPath
         let target: any = null;
         if (originalPath.segments) {
           target = originalPath;
@@ -833,6 +839,10 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       somethingChanged = false;
       altPrimed = false;
       initialDownPoint = null;
+      
+      // CRITICAL FIX: Emit selection change AFTER drag is complete
+      // This avoids re-render during drag initiation
+      emitSelectionChange();
     };
 
     tool.activate();
@@ -919,18 +929,18 @@ export default VectorCanvas;
 
 // ----------------- HANDLE UTILITIES -----------------
 
-// Nouvelle fonction qui gère Path ET CompoundPath
+// New function that handles both Path AND CompoundPath
 function createHandlesForItem(item: any, handlesLayer: any, color: string = "#007bff") {
   if (!item || !handlesLayer || !item.data?.id) return;
   removeHandlesForPath(item.data.id);
   
   if (item.segments) {
-    // C'est un Path simple
+    // It's a simple Path
     item.segments.forEach((seg: any, idx: number) => {
       createAnchorAndHandles(item, seg, idx, handlesLayer, color);
     });
   } else if (item.children) {
-    // C'est un CompoundPath
+    // It's a CompoundPath
     item.children.forEach((child: any, childIdx: number) => {
       if (child.segments) {
         child.segments.forEach((seg: any, segIdx: number) => {
@@ -993,7 +1003,7 @@ function createAnchorAndHandles(path: any, seg: any, idx: number, handlesLayer: 
   }
 }
 
-// Nouvelle fonction pour les segments de CompoundPath
+// New function for CompoundPath segments
 function createAnchorAndHandlesForCompound(parent: any, child: any, seg: any, childIdx: number, segIdx: number, handlesLayer: any, color: string) {
   const pt = new paper.Path.Circle(seg.point, 5);
   pt.fillColor = color;
@@ -1037,7 +1047,7 @@ function ensureSegmentHandleVisuals(parentItem: any, segIdx: number, childIdx?: 
   const handles = findHandlesLayer();
   if (!handles) return;
 
-  // Obtenir le bon target (Path ou enfant de CompoundPath)
+  // Get the right target (Path or CompoundPath child)
   let target: any = null;
   if (parentItem.segments) {
     target = parentItem;
@@ -1049,7 +1059,7 @@ function ensureSegmentHandleVisuals(parentItem: any, segIdx: number, childIdx?: 
   const seg = target.segments[segIdx];
   if (!seg) return;
 
-  // Supprimer les anciens visuels pour ce segment
+  // Remove old visuals for this segment
   handles.children
     .filter((h: any) => 
       h.data?.pathId === parentItem.data.id && 
@@ -1058,7 +1068,7 @@ function ensureSegmentHandleVisuals(parentItem: any, segIdx: number, childIdx?: 
     )
     .forEach((h: any) => h.remove());
 
-  // Recréer les visuels
+  // Recreate visuals
   if (typeof childIdx === 'number') {
     createAnchorAndHandlesForCompound(parentItem, target, seg, childIdx, segIdx, handles, "#007bff");
   } else {
@@ -1070,7 +1080,7 @@ function updateHandlesForSegment(parentItem: any, segIdx: number, childIdx?: num
   const handles = findHandlesLayer();
   if (!handles) return;
 
-  // Obtenir le bon target
+  // Get the right target
   let target: any = null;
   if (parentItem.segments) {
     target = parentItem;
@@ -1086,7 +1096,7 @@ function updateHandlesForSegment(parentItem: any, segIdx: number, childIdx?: num
   const needIn = !!seg.handleIn && !(seg.handleIn.x === 0 && seg.handleIn.y === 0);
   const needOut = !!seg.handleOut && !(seg.handleOut.x === 0 && seg.handleOut.y === 0);
 
-  // Mettre à jour les positions existantes
+  // Update existing positions
   handles.children
     .filter((h: any) => 
       h.data?.pathId === pathId && 
@@ -1121,7 +1131,7 @@ function updateHandlesForSegment(parentItem: any, segIdx: number, childIdx?: num
       }
     });
 
-  // Créer les handles manquants
+  // Create missing handles
   const hasIn = handles.children.some((h: any) => 
     h.data?.pathId === pathId && 
     h.data.segIdx === segIdx && 
