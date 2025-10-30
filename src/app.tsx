@@ -497,8 +497,8 @@ export default function App() {
             <div
               style={{
                 position: 'relative',
-                border: '1px solid var(--ui-kit-color-border, #E5E7EB)',
-                background: 'var(--ui-kit-color-surface, #FFFFFF)',
+                border: '1px solid var(--ui-kit-color-action-secondary-border)',
+                background: 'var(--ui-kit-color-action-secondary-bg)',
                 borderRadius: 6,
                 padding: 6,
                 display: 'flex',
@@ -571,12 +571,12 @@ export default function App() {
                   transition: 'background .15s, border-color .15s, color .15s'
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.background = '#F3F4F6';
-                  e.currentTarget.style.borderColor = '#D1D5DB';
+                  e.currentTarget.style.background = 'var(--ui-kit-color-action-secondary-bg-hover)'; // ✅
+                  e.currentTarget.style.borderColor = 'var(--ui-kit-color-action-secondary-border-hover)'; // ✅
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.background = 'var(--ui-kit-color-surface, #FFFFFF)';
-                  e.currentTarget.style.borderColor = 'var(--ui-kit-color-border, #E5E7EB)';
+                  e.currentTarget.style.background = 'var(--ui-kit-color-action-secondary-bg)'; // ✅
+                  e.currentTarget.style.borderColor = 'var(--ui-kit-color-action-secondary-border)'; // ✅
                 }}
               >
                 <s.Icon size={18} strokeWidth={1.8} aria-hidden="true" />
@@ -684,7 +684,7 @@ export default function App() {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 6,
-                    border: '1px solid var(--ui-kit-color-border, #E5E7EB)',
+                    border: '1px solid var(--ui-kit-color-action-secondary-border)', // ✅
                     padding: 6,
                     borderRadius: 6,
                     margin: 0
@@ -869,9 +869,9 @@ const shapeBtnStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  border: '1px solid var(--ui-kit-color-border, #E5E7EB)',
-  background: 'var(--ui-kit-color-surface, #FFFFFF)',
-  color: 'var(--ui-kit-color-typography-primary, #111827)',
+  border: '1px solid var(--ui-kit-color-action-secondary-border)', // ✅
+  background: 'var(--ui-kit-color-action-secondary-bg)', // ✅
+  color: 'var(--ui-kit-color-action-secondary-fg)', // ✅
   borderRadius: 6,
   cursor: 'pointer',
   padding: 0
