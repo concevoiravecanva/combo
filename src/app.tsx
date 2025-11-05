@@ -419,7 +419,7 @@ export default function App() {
     ) : (
       <main
         role="main"
-        aria-label="Vector editor"
+        aria-label={intl.formatMessage(messages.app_main_aria_label)}
         style={{
           width: '100%',
           // Let the document handle height so the page can scroll
@@ -463,20 +463,20 @@ export default function App() {
                   color: 'var(--ui-kit-color-typography-primary)'
                 }}
               >
-                Preview
+                {intl.formatMessage(messages.preview_heading)}
               </Text>
               <div style={{ display: 'flex', gap: 6 }}>
                 <Button
-                  ariaLabel="Clear all shapes"
-                  tooltipLabel="Clear"
+                  ariaLabel={intl.formatMessage(messages.toolbar_clear)}
+                  tooltipLabel={intl.formatMessage(messages.toolbar_clear)}
                   variant="tertiary"
                   size="small"
                   icon={ReloadIcon}
                   onClick={handleClear}
                 />
                 <Button
-                  ariaLabel="Undo"
-                  tooltipLabel="Undo"
+                  ariaLabel={intl.formatMessage(messages.toolbar_undo)}
+                  tooltipLabel={intl.formatMessage(messages.toolbar_undo)}
                   variant="tertiary"
                   size="small"
                   icon={UndoIcon}
@@ -484,8 +484,8 @@ export default function App() {
                   onClick={handleUndo}
                 />
                 <Button
-                  ariaLabel={handlesVisible ? 'Hide Bezier handles' : 'Show Bezier handles'}
-                  tooltipLabel={handlesVisible ? 'Hide handles' : 'Show handles'}
+                  ariaLabel={handlesVisible ? intl.formatMessage(messages.toolbar_handles_hide) : intl.formatMessage(messages.toolbar_handles_show)}
+                  tooltipLabel={handlesVisible ? intl.formatMessage(messages.toolbar_handles_hide) : intl.formatMessage(messages.toolbar_handles_show)}
                   variant="tertiary"
                   size="small"
                   icon={handlesVisible ? XIcon : EyeIcon}
@@ -517,7 +517,7 @@ export default function App() {
                 style={{ width: 320, height: 240, display: 'block' }}
                 onShapesChange={() => refreshShapes()}
                 onSelectionChange={handleSelectionChange}
-                aria-label="Vector drawing area"
+                aria-label={intl.formatMessage(messages.canvas_aria_label)}
               />
               {shapes.length === 0 && (
                 <div
@@ -548,11 +548,11 @@ export default function App() {
               color: 'var(--ui-kit-color-typography-primary)'
             }}
           >
-            Shapes
+            {intl.formatMessage(messages.shapes_heading)}
           </Text>
           <div
             role="group"
-            aria-label="Shape palette"
+            aria-label={intl.formatMessage(messages.palette_aria_label)}
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
@@ -564,7 +564,7 @@ export default function App() {
               <button
                 key={s.key}
                 type="button"
-                aria-label={`Add ${s.label}`}
+                aria-label={intl.formatMessage(messages.palette_add_shape, { shape: s.label })}
                 onClick={() => handleAddShape(s.key)}
                 style={{
                   ...shapeBtnStyle,
@@ -593,11 +593,11 @@ export default function App() {
                   marginTop: 12
                 }}
               >
-                Actions
+                {intl.formatMessage(messages.actions_heading)}
               </div>
               <div
                 role="group"
-                aria-label="Boolean operations"
+                aria-label={intl.formatMessage(messages.boolean_operations_aria)}
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(2, 1fr)',
@@ -664,7 +664,7 @@ export default function App() {
                   textAlign: 'center'
                 }}
               >
-                Select two shapes to apply an action
+                {intl.formatMessage(messages.select_two_shapes)}
               </Text>
             </>
           )}
@@ -822,24 +822,24 @@ export default function App() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 24 }}>
             <Button
               alignment="center"
-              ariaLabel="Add to design"
+              ariaLabel={intl.formatMessage(messages.add_to_design_button)}
               variant="primary"
               stretch
               loading={pushing}
               disabled={shapes.length === 0 || pushing}
               onClick={handlePushToCanva}
             >
-              Add to design
+              {intl.formatMessage(messages.add_to_design_button)}
             </Button>
             <Button
               alignment="center"
-              ariaLabel="Help"
+              ariaLabel={intl.formatMessage(messages.help_button)}
               variant="secondary"
               stretch
               icon={InfoIcon}
               onClick={() => setShowHelpPanel(true)}
             >
-              Help
+              {intl.formatMessage(messages.help_button)}
             </Button>
           </div>
 

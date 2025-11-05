@@ -1,7 +1,7 @@
 import React from "react";
 import { Title, Button, Text, Alert } from "@canva/app-ui-kit";
 import { ArrowLeftIcon } from "@canva/app-ui-kit";
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { messages } from './i18n/messages';
 import '@canva/app-ui-kit/styles.css';
 
@@ -49,6 +49,13 @@ function ShortcutBox({ keys }: { keys: string[] }) {
 }
 
 export default function HelpPage({ onBack }: { onBack: () => void }) {
+  const intl = useIntl();
+  
+  // Helper to render FormattedMessage with <b> support
+  const renderBoldText = (message: any) => (
+    <FormattedMessage {...message} values={{ b: (chunks: any) => <b>{chunks}</b> }} />
+  );
+  
   return (
     <div
       style={{
@@ -74,7 +81,7 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
         }}
       >
         <Button
-          ariaLabel="Back"
+          ariaLabel={intl.formatMessage(messages.back_button)}
           icon={ArrowLeftIcon}
           variant="tertiary"
           size="small"
@@ -90,7 +97,7 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
             fontFamily: "var(--ui-kit-typography-font-family-heading)"
           }}
         >
-          Help
+          {intl.formatMessage(messages.help_title)}
         </Title>
       </div>
       {/* Main content */}
@@ -129,45 +136,45 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
             <div role="presentation" style={{ height: 12 }} />
           </div>
 
-          <ul style={{ margin: 0, paddingLeft: 16 }}>
+                    <ul style={{ margin: 0, paddingLeft: 16 }}>
             <li>
               <Text>
-                <b>Add shapes:</b> Select from the shape palette to add new shapes to the canvas.
+                {renderBoldText(messages.help_add_shapes)}
               </Text>
             </li>
             <li>
               <Text>
-                <b>Select shapes:</b> Click a shape on the canvas or in the layers panel to select it. Hold <b>Shift</b> to select up to two shapes at once.
+                {renderBoldText(messages.help_select_shapes)}
               </Text>
             </li>
             <li>
               <Text>
-                <b>Combine shapes:</b> Select two shapes and use the Union, Subtract, Intersect, or Exclude buttons to combine them.
+                {renderBoldText(messages.help_combine_shapes)}
               </Text>
             </li>
             <li>
               <Text>
-                <b>Edit layers:</b> In the layers panel, you can change colors, reorder, resize, or delete shapes.
+                {renderBoldText(messages.help_edit_layers)}
               </Text>
             </li>
             <li>
               <Text>
-                <b>Bezier handles:</b> Drag the handles to adjust paths and curves. Use the eye icon to show or hide them.
+                {renderBoldText(messages.help_bezier_handles)}
               </Text>
             </li>
             <li>
               <Text>
-                <b>Undo:</b> Click the undo button to revert your last change.
+                {renderBoldText(messages.help_undo)}
               </Text>
             </li>
             <li>
               <Text>
-                <b>Clear:</b> Click the clear button to remove all shapes from the canvas.
+                {renderBoldText(messages.help_clear)}
               </Text>
             </li>
             <li>
               <Text>
-                <b>Add to design:</b> When you’re happy with your shapes, click this button to add them to your Canva design.
+                {renderBoldText(messages.help_add_to_design)}
               </Text>
             </li>
           </ul>
@@ -180,30 +187,30 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
             <div role="presentation" style={{ height: 12 }} />
           </div>
 
-          <ul style={{ margin: 0, paddingLeft: 16 }}>
+                    <ul style={{ margin: 0, paddingLeft: 16 }}>
             <li>
               <Text>
-                <b>Swatch:</b> Change the shape’s fill color.
+                {renderBoldText(messages.help_swatch)}
               </Text>
             </li>
             <li>
               <Text>
-                <b>Arrange:</b> Move the shape forward or backward in the layer stack.
+                {renderBoldText(messages.help_arrange)}
               </Text>
             </li>
             <li>
               <Text>
-                <b>Rotate:</b> Turn the shape in 10° steps.
+                {renderBoldText(messages.help_rotate)}
               </Text>
             </li>
             <li>
               <Text>
-                <b>Scale:</b> Make the shape bigger or smaller by 10%.
+                {renderBoldText(messages.help_scale)}
               </Text>
             </li>
             <li>
               <Text>
-                <b>Delete:</b> Remove the shape from the canvas.
+                {renderBoldText(messages.help_delete)}
               </Text>
             </li>
           </ul>
@@ -219,37 +226,37 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
           <ul style={{ margin: "0 0 4px 0", paddingLeft: 16 }}>
             <li style={{ marginBottom: 4 }}>
               <Text>
-                <b>Add to design:</b>
+                {renderBoldText(messages.help_kbd_add_to_design)}
                 <ShortcutBox keys={["Enter"]} />
               </Text>
             </li>
             <li style={{ marginBottom: 4 }}>
               <Text>
-                <b>Delete selection:</b>
+                {renderBoldText(messages.help_kbd_delete_selection)}
                 <ShortcutBox keys={["Delete", "Backspace"]} />
               </Text>
             </li>
             <li style={{ marginBottom: 4 }}>
               <Text>
-                <b>Add shape:</b>
+                {renderBoldText(messages.help_kbd_add_shape)}
                 <ShortcutBox keys={["1", "2", "3", "4", "5", "6", "7", "8"]} />
               </Text>
             </li>
             <li style={{ marginBottom: 4 }}>
               <Text>
-                <b>Scale:</b>
+                {renderBoldText(messages.help_kbd_scale)}
                 <ShortcutBox keys={["/", "-"]} />
               </Text>
             </li>
             <li style={{ marginBottom: 4 }}>
               <Text>
-                <b>Arrange:</b>
+                {renderBoldText(messages.help_kbd_arrange)}
                 <ShortcutBox keys={["]", "["]} />
               </Text>
             </li>
             <li style={{ marginBottom: 4 }}>
               <Text>
-                <b>Undo:</b>
+                {renderBoldText(messages.help_kbd_undo)}
                 <ShortcutBox keys={["Cmd+Z", "Ctrl+Z"]} />
               </Text>
             </li>
@@ -259,7 +266,7 @@ export default function HelpPage({ onBack }: { onBack: () => void }) {
         <div role="presentation" style={{ height: 16 }} />
         <div>
           <Alert tone="info" style={{ margin: 0 }}>
-            These keyboard shortcuts only work when the app is active. On the canvas editor, Canva's native keyboard shortcuts apply.
+            <FormattedMessage {...messages.help_kbd_info} />
           </Alert>
         </div>
       </div>

@@ -134,6 +134,26 @@ export const messages = defineMessages({
     defaultMessage: 'Shapes',
     description: 'Heading above the shape palette'
   },
+  actions_heading: {
+    defaultMessage: 'Actions',
+    description: 'Heading above the boolean operations'
+  },
+  boolean_operations_aria: {
+    defaultMessage: 'Boolean operations',
+    description: 'Aria-label for the group of boolean operation buttons'
+  },
+  select_two_shapes: {
+    defaultMessage: 'Select two shapes to apply an action',
+    description: 'Hint message shown below boolean operations buttons'
+  },
+  add_to_design_button: {
+    defaultMessage: 'Add to design',
+    description: 'Label for the main button to add shapes to Canva design'
+  },
+  help_button: {
+    defaultMessage: 'Help',
+    description: 'Label for the button to open help panel'
+  },
   palette_aria_label: {
     defaultMessage: 'Shape palette',
     description: 'Aria-label for the group of shape buttons'
@@ -215,5 +235,93 @@ export const messages = defineMessages({
   help_kbd_title: {
     defaultMessage: 'Keyboard shortcuts',
     description: 'Section title for the keyboard shortcuts list'
+  },
+  back_button: {
+    defaultMessage: 'Back',
+    description: 'Back button aria-label'
+  },
+  help_title: {
+    defaultMessage: 'Help',
+    description: 'Help page title'
+  },
+  help_add_shapes: {
+    defaultMessage: '<b>Add shapes:</b> Select from the shape palette to add new shapes to the canvas.',
+    description: 'Help instruction for adding shapes'
+  },
+  help_select_shapes: {
+    defaultMessage: '<b>Select shapes:</b> Click a shape on the canvas or in the layers panel to select it. Hold <b>Shift</b> to select up to two shapes at once.',
+    description: 'Help instruction for selecting shapes'
+  },
+  help_combine_shapes: {
+    defaultMessage: '<b>Combine shapes:</b> Select two shapes and use the Union, Subtract, Intersect, or Exclude buttons to combine them.',
+    description: 'Help instruction for combining shapes'
+  },
+  help_edit_layers: {
+    defaultMessage: '<b>Edit layers:</b> In the layers panel, you can change colors, reorder, resize, or delete shapes.',
+    description: 'Help instruction for editing layers'
+  },
+  help_bezier_handles: {
+    defaultMessage: '<b>Bezier handles:</b> Drag the handles to adjust paths and curves. Use the eye icon to show or hide them.',
+    description: 'Help instruction for bezier handles'
+  },
+  help_undo: {
+    defaultMessage: '<b>Undo:</b> Click the undo button to revert your last change.',
+    description: 'Help instruction for undo'
+  },
+  help_clear: {
+    defaultMessage: '<b>Clear:</b> Click the clear button to remove all shapes from the canvas.',
+    description: 'Help instruction for clear'
+  },
+  help_add_to_design: {
+    defaultMessage: '<b>Add to design:</b> When you\'re happy with your shapes, click this button to add them to your Canva design.',
+    description: 'Help instruction for add to design'
+  },
+  help_swatch: {
+    defaultMessage: '<b>Swatch:</b> Change the shape\'s fill color.',
+    description: 'Help instruction for swatch'
+  },
+  help_arrange: {
+    defaultMessage: '<b>Arrange:</b> Move the shape forward or backward in the layer stack.',
+    description: 'Help instruction for arrange'
+  },
+  help_rotate: {
+    defaultMessage: '<b>Rotate:</b> Turn the shape in 10° steps.',
+    description: 'Help instruction for rotate'
+  },
+  help_scale: {
+    defaultMessage: '<b>Scale:</b> Make the shape bigger or smaller by 10%.',
+    description: 'Help instruction for scale'
+  },
+  help_delete: {
+    defaultMessage: '<b>Delete:</b> Remove the shape from the canvas.',
+    description: 'Help instruction for delete'
+  },
+  help_kbd_add_to_design: {
+    defaultMessage: '<b>Add to design:</b>',
+    description: 'Keyboard shortcut label for add to design'
+  },
+  help_kbd_delete_selection: {
+    defaultMessage: '<b>Delete selection:</b>',
+    description: 'Keyboard shortcut label for delete selection'
+  },
+  help_kbd_add_shape: {
+    defaultMessage: '<b>Add shape:</b>',
+    description: 'Keyboard shortcut label for add shape'
+  },
+  help_kbd_scale: {
+    defaultMessage: '<b>Scale:</b>',
+    description: 'Keyboard shortcut label for scale'
+  },
+  help_kbd_arrange: {
+    defaultMessage: '<b>Arrange:</b>',
+    description: 'Keyboard shortcut label for arrange'
+  },
+  help_kbd_undo: {
+    defaultMessage: '<b>Undo:</b>',
+    description: 'Keyboard shortcut label for undo'
+  },
+  help_kbd_info: {
+    defaultMessage: 'These keyboard shortcuts only work when the app is active. On the canvas editor, Canva\'s native keyboard shortcuts apply.',
+    description: 'Info message about keyboard shortcuts'
   }
 });
