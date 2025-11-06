@@ -324,19 +324,52 @@ export default function App() {
     id: string
   ) {
     const isTouchLike = isTouchLikeNow();
-    const multi = e.shiftKey || e.metaKey || e.ctrlKey || (isTouchLike && selected.length >= 1);
     const currentIds = selected.map((s) => s.id);
 
+    // On mobile/touch: special behavior for easier multi-select
+    if (isTouchLike) {
+      // If clicking the same shape that's already selected alone, deselect it
+      if (currentIds.length === 1 && currentIds[0] === id) {
+        canvasRef.current?.selectShapes?.([]);
+        return;
+      }
+      
+      // If already selected (in a multi-selection), keep the selection
+      if (currentIds.includes(id)) {
+        canvasRef.current?.selectShapes?.(currentIds);
+        return;
+      }
+      
+      // Add to selection (max 2 shapes for boolean operations)
+      let nextIds: string[] = [];
+      if (currentIds.length === 0) {
+        nextIds = [id];
+      } else if (currentIds.length === 1) {
+        // Add second shape
+        nextIds = [currentIds[0], id];
+      } else {
+        // Already have 2 shapes, replace with the last one + new one
+        nextIds = [currentIds[currentIds.length - 1], id];
+      }
+      
+      canvasRef.current?.selectShapes?.(nextIds);
+      return;
+    }
+
+    // Desktop behavior: use modifier keys
+    const multi = e.shiftKey || e.metaKey || e.ctrlKey;
+    
     if (!multi) {
-      // single click: single selection
+      // Single click without modifiers: single selection
       canvasRef.current?.selectShapes?.([id]);
       return;
     }
 
-    // click with Shift/Cmd/Ctrl: build a selection of up to 2
+    // Click with Shift/Cmd/Ctrl: build a selection of up to 2
     if (currentIds.includes(id)) {
-      // already selected: no change
-      canvasRef.current?.selectShapes?.(currentIds);
+      // Already selected: remove from selection
+      const filtered = currentIds.filter(existingId => existingId !== id);
+      canvasRef.current?.selectShapes?.(filtered);
       return;
     }
 
@@ -346,7 +379,7 @@ export default function App() {
     } else if (currentIds.length === 1) {
       nextIds = [currentIds[0], id];
     } else {
-      // keep the most recent + the new one (max 2)
+      // Keep the most recent + the new one (max 2)
       nextIds = [currentIds[currentIds.length - 1], id];
     }
 
