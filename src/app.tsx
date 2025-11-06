@@ -37,21 +37,28 @@ import '@canva/app-ui-kit/styles.css';
 type CombineOp = 'union' | 'subtract' | 'intersect' | 'exclude';
 
 const SHAPES = [
-  { key: 'circle', label: 'Circle', Icon: IconCircle },
-  { key: 'square', label: 'Square', Icon: IconSquare },
-  { key: 'triangle', label: 'Triangle', Icon: IconTriangle },
-  { key: 'diamond', label: 'Diamond', Icon: IconDiamond },
-  { key: 'pentagon', label: 'Pentagon', Icon: IconPentagon },
-  { key: 'hexagon', label: 'Hexagon', Icon: IconHexagon },
-  { key: 'heart', label: 'Heart', Icon: IconHeart },
-  { key: 'star', label: 'Star', Icon: IconStar }
+  { key: 'circle', Icon: IconCircle },
+  { key: 'square', Icon: IconSquare },
+  { key: 'triangle', Icon: IconTriangle },
+  { key: 'diamond', Icon: IconDiamond },
+  { key: 'pentagon', Icon: IconPentagon },
+  { key: 'hexagon', Icon: IconHexagon },
+  { key: 'heart', Icon: IconHeart },
+  { key: 'star', Icon: IconStar }
 ];
 
-const formatTypeLabel = (type: string): string => {
-  const found = SHAPES.find(shape => shape.key === type)?.label;
-  if (found) return found;
-  if (!type) return type;
-  return type.charAt(0).toUpperCase() + type.slice(1); // e.g., "shape" -> "Shape"
+const shapeLabel = (intl: ReturnType<typeof useIntl>, type: string): string => {
+  switch (type) {
+    case 'circle': return intl.formatMessage(messages.shape_circle);
+    case 'square': return intl.formatMessage(messages.shape_square);
+    case 'triangle': return intl.formatMessage(messages.shape_triangle);
+    case 'diamond': return intl.formatMessage(messages.shape_diamond);
+    case 'pentagon': return intl.formatMessage(messages.shape_pentagon);
+    case 'hexagon': return intl.formatMessage(messages.shape_hexagon);
+    case 'heart': return intl.formatMessage(messages.shape_heart);
+    case 'star': return intl.formatMessage(messages.shape_star);
+    default: return type ? (type.charAt(0).toUpperCase() + type.slice(1)) : type;
+  }
 };
 
 export default function App() {
@@ -593,11 +600,11 @@ export default function App() {
               marginBottom: 8
             }}
           >
-            {SHAPES.map(s => (
+      {SHAPES.map(s => (
               <button
                 key={s.key}
                 type="button"
-                aria-label={intl.formatMessage(messages.palette_add_shape, { shape: s.label })}
+        aria-label={intl.formatMessage(messages.palette_add_shape, { shape: shapeLabel(intl, s.key) })}
                 onClick={() => handleAddShape(s.key)}
                 style={{
                   ...shapeBtnStyle,
@@ -712,7 +719,7 @@ export default function App() {
                 <div
                   id="layers-panel"
                   role="list"
-                  aria-label="Layer list"
+                  aria-label={intl.formatMessage(messages.layers_list_aria)}
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -733,7 +740,7 @@ export default function App() {
                           alignment="center"
                           variant="secondary"
                           stretch
-                          ariaLabel={`Select ${formatTypeLabel(s.type)}`}
+                          ariaLabel={intl.formatMessage(messages.layers_select_shape, { shape: shapeLabel(intl, s.type) })}
                           selected={isSel}
                           icon={ShapeIcon ? () => (
                             <ShapeIcon
@@ -754,7 +761,7 @@ export default function App() {
                             marginBottom: 2
                           }}
                         >
-                          {formatTypeLabel(s.type)}
+                          {shapeLabel(intl, s.type)}
                         </Button>
                         {isSel && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0 10px 0', paddingLeft: 4 }}>
@@ -775,7 +782,7 @@ export default function App() {
                               onClick={() => {
                                 canvasRef.current?.moveLayer?.(s.id, 'up');
                                 refreshShapes(false);
-                                announce('Layer moved up');
+                                announce(intl.formatMessage(messages.layer_moved_up_announce));
                               }}
                             />
                             <Button
@@ -788,7 +795,7 @@ export default function App() {
                               onClick={() => {
                                 canvasRef.current?.moveLayer?.(s.id, 'down');
                                 refreshShapes(false);
-                                announce('Layer moved down');
+                                announce(intl.formatMessage(messages.layer_moved_down_announce));
                               }}
                             />
                             <Button
@@ -814,7 +821,7 @@ export default function App() {
                               onClick={() => {
                                 canvasRef.current?.scaleShapes?.([s.id], 1.1);
                                 refreshShapes(false);
-                                announce('Scaled up');
+                                announce(intl.formatMessage(messages.scale_up_announce));
                               }}
                             />
                             <Button
@@ -827,7 +834,7 @@ export default function App() {
                               onClick={() => {
                                 canvasRef.current?.scaleShapes?.([s.id], 0.9);
                                 refreshShapes(false);
-                                announce('Scaled down');
+                                announce(intl.formatMessage(messages.scale_down_announce));
                               }}
                             />
                             <Button
@@ -840,7 +847,7 @@ export default function App() {
                               onClick={() => {
                                 canvasRef.current?.deleteShape?.(s.id);
                                 refreshShapes();
-                                announce('Shape deleted');
+                                announce(intl.formatMessage(messages.deleted_shape_announce));
                               }}
                             />
                           </div>

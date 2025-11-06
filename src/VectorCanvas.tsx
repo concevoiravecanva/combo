@@ -42,6 +42,8 @@ type Props = {
   onShapesChange?: () => void;
   onSelectionChange?: (shapes: ShapeData[]) => void;
   style?: React.CSSProperties;
+  // Accept arbitrary DOM props so we can forward accessibility attributes like aria-label
+  [key: string]: any;
 };
 
 const generateId = () => Math.random().toString(36).slice(2, 10);
@@ -915,7 +917,8 @@ const VectorCanvas = forwardRef<VectorCanvasRef, Props>((props, ref) => {
       <canvas
         ref={canvasRef}
         role="img"
-        aria-label="Drawing area, use handles to adjust curves"
+  // Forward any consumer-provided aria-label; avoid hardcoded default text
+  aria-label={props["aria-label"]}
         tabIndex={0}
         width={props.width || 300}
         height={props.height || 240}

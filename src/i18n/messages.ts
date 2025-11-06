@@ -1,6 +1,39 @@
 import { defineMessages } from 'react-intl';
 
 export const messages = defineMessages({
+  // Shape names
+  shape_circle: {
+    defaultMessage: 'Circle',
+    description: 'Shape name: circle'
+  },
+  shape_square: {
+    defaultMessage: 'Square',
+    description: 'Shape name: square'
+  },
+  shape_triangle: {
+    defaultMessage: 'Triangle',
+    description: 'Shape name: triangle'
+  },
+  shape_diamond: {
+    defaultMessage: 'Diamond',
+    description: 'Shape name: diamond'
+  },
+  shape_pentagon: {
+    defaultMessage: 'Pentagon',
+    description: 'Shape name: pentagon'
+  },
+  shape_hexagon: {
+    defaultMessage: 'Hexagon',
+    description: 'Shape name: hexagon'
+  },
+  shape_heart: {
+    defaultMessage: 'Heart',
+    description: 'Shape name: heart'
+  },
+  shape_star: {
+    defaultMessage: 'Star',
+    description: 'Shape name: star'
+  },
   palette_add_shape: {
     defaultMessage: 'Add {shape}',
     description: 'Tooltip / aria-label for button that adds a specific shape'
@@ -109,6 +142,22 @@ export const messages = defineMessages({
     defaultMessage: 'Rotated 10 degrees',
     description: 'Live region announcement after a 10 degree rotation'
   },
+  layer_moved_up_announce: {
+    defaultMessage: 'Layer moved up',
+    description: 'Live region announcement after moving a layer up'
+  },
+  layer_moved_down_announce: {
+    defaultMessage: 'Layer moved down',
+    description: 'Live region announcement after moving a layer down'
+  },
+  scale_up_announce: {
+    defaultMessage: 'Scaled up',
+    description: 'Live region announcement after scaling up'
+  },
+  scale_down_announce: {
+    defaultMessage: 'Scaled down',
+    description: 'Live region announcement after scaling down'
+  },
   deleted_shape_announce: {
     defaultMessage: 'Shape deleted',
     description: 'Live region announcement after deleting a shape'
@@ -173,6 +222,10 @@ export const messages = defineMessages({
   layers_list_aria: {
     defaultMessage: 'Layer list',
     description: 'Aria-label for the list of layers'
+  },
+  layers_select_shape: {
+    defaultMessage: 'Select {shape}',
+    description: 'Aria-label for selecting a shape row in the layers list'
   },
 
   // Help / Shortcuts labels
